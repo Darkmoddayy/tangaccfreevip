@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>ADMIN - Tặng Acc</title>
+  <style>
+    body{font-family:sans-serif;background:#111;color:#fff;text-align:center}
+    input,button{padding:10px;margin:5px;border-radius:8px;border:none}
+    button{background:red;color:#fff}
+    .box{background:#222;padding:15px;border-radius:10px;margin:10px}
+  </style>
+</head>
+<body>
+
+<h2>🔐 ADMIN PANEL</h2>
+
+<div id="login">
+  <input type="password" id="pass" placeholder="Mật khẩu admin">
+  <button onclick="login()">Đăng nhập</button>
+</div>
+
+<div id="panel" style="display:none">
+
+  <h3>➕ Thêm ACC</h3>
+  <input id="user" placeholder="Username">
+  <input id="pwd" placeholder="Password">
+  <button onclick="addAcc()">Thêm</button>
+
+  <h3>📊 Thống kê</h3>
+  <div id="stats"></div>
+
+  <h3>📦 Danh sách acc</h3>
+  <div id="list"></div>
+
+</div>
+
+<script type="module">
+
+import { db } from './firebase.js'
+import {
+collection, addDoc, getDocs, doc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+
+const ADMIN_PASS = "123456" // đổi mật khẩu tại đây
+
+window.login = function(){
+  if(document.getElementById("pass").value == ADMIN_PASS){
+    document.getElementById("login").style.display="none"
+    document.getElementById("panel").style.display="block"
+    loadData()
+  }else{
+    alert("Sai mật khẩu")
+  }
+}
+
+window.addAcc = async function(){
+
+  const user = document.getElementById("user").value
+  const pwd = document.getElementById("pwd").value
+
+  await addDoc(collection(db,"accounts"),{
+    username:user,
+    password:pwd,
+    status:"ready"
+  })
+
+  loadData()
+}
+
+async function loadData(){
+
+  const snap = await getDocs(collection(db,"accounts"))
+
+  let ready = 0
+  let used = 0
+  let html = ""
+
+  snap.forEach(docu=>{
+
+    const data = docu.data()
+
+    if(data.status=="ready") ready++
+    else used++
+
+    html += `
+    <div class="box">
+      👤 ${data.username} | ${data.password} | ${data.status}
+      <br>
+      <button onclick="del('${docu.id}')">Xóa</button>
+    </div>
+    `
+  })
+
+  document.getElementById("stats").innerHTML =
+    `✅ Còn: ${ready} | ❌ Đã phát: ${used}`
+
+  document.getElementById("list").innerHTML = html
+}
+
+window.del = async function(id){
+  await deleteDoc(doc(db,"accounts",id))
+  loadData()
+}
+
+</script>
+</body>
+</html>
