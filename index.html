@@ -68,7 +68,7 @@
 
     let last = localStorage.getItem("cooldown");
 
-    if(last && Date.now() - last < 1800000){
+    if(last && Date.now() - last < 1){
       alert("⏱ Bạn đã nhận rồi! Quay lại sau 30 phút");
       return;
     }
