@@ -5,136 +5,99 @@
   <title>ADMIN PANEL</title>
   <style>
     body{
+      font-family: Arial;
       background:#0f172a;
       color:white;
-      font-family:sans-serif;
       text-align:center;
     }
     .box{
-      margin-top:80px;
+      background:#1e293b;
+      padding:20px;
+      margin:20px auto;
+      width:90%;
+      max-width:500px;
+      border-radius:15px;
     }
-    input,button{
+    input,textarea,button{
+      width:90%;
       padding:10px;
       margin:5px;
-      border-radius:8px;
+      border-radius:10px;
       border:none;
     }
     button{
-      background:red;
+      background:#22c55e;
       color:white;
-      cursor:pointer;
-    }
-    table{
-      margin:auto;
-      margin-top:20px;
-      background:white;
-      color:black;
-      border-collapse:collapse;
-    }
-    td,th{
-      padding:8px 15px;
-      border:1px solid #ccc;
+      font-weight:bold;
     }
   </style>
 </head>
 <body>
 
+<h1>🔐 ADMIN PANEL</h1>
+
+<!-- LOGIN -->
 <div class="box" id="loginBox">
-  <h2>🔐 ADMIN LOGIN</h2>
-  <input type="password" id="pass" placeholder="Mật khẩu admin">
+  <h2>Đăng nhập</h2>
+  <input type="password" id="pass" placeholder="Nhập mật khẩu admin">
   <button onclick="login()">Đăng nhập</button>
 </div>
 
-<div id="panel" style="display:none;">
-  <h2>🎯 ADMIN PANEL</h2>
+<!-- ADMIN -->
+<div class="box" id="adminBox" style="display:none">
 
-  <h3>➕ Thêm ACC</h3>
-  <input id="user" placeholder="Username">
-  <input id="pw" placeholder="Password">
+  <h2>Thêm ACC</h2>
+  <textarea id="newAcc" placeholder="user|pass"></textarea>
   <button onclick="addAcc()">Thêm</button>
 
-  <h3>📦 Danh sách ACC</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>User</th>
-        <th>Pass</th>
-        <th>Trạng thái</th>
-      </tr>
-    </thead>
-    <tbody id="list"></tbody>
-  </table>
+  <h2>Danh sách ACC</h2>
+  <p id="count"></p>
+  <textarea id="listAcc" rows="10"></textarea>
+  <br>
+  <button onclick="save()">Lưu</button>
+  <button onclick="clearAcc()">Xóa tất cả</button>
 
-  <h3>📊 Đã phát: <span id="count">0</span></h3>
 </div>
 
-<!-- Firebase -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getFirestore, collection, addDoc, getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+<script>
 
-const firebaseConfig = {
-  apiKey: "DÁN API KEY",
-  authDomain: "DÁN DOMAIN",
-  projectId: "DÁN ID",
-};
+const ADMIN_PASS = "123456"; // 🔑 đổi mật khẩu tại đây
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-window.login = function(){
-  const mk = document.getElementById("pass").value;
-
-  if(mk === "admin123"){
-    document.getElementById("loginBox").style.display="none";
-    document.getElementById("panel").style.display="block";
+function login(){
+  if(document.getElementById("pass").value === ADMIN_PASS){
+    loginBox.style.display="none";
+    adminBox.style.display="block";
     loadAcc();
   }else{
     alert("Sai mật khẩu!");
   }
 }
 
-window.addAcc = async function(){
-  const user = document.getElementById("user").value;
-  const pw = document.getElementById("pw").value;
+function loadAcc(){
+  let acc = JSON.parse(localStorage.getItem("accounts") || "[]");
+  listAcc.value = acc.join("\n");
+  count.innerText = "✨ Tổng acc: " + acc.length;
+}
 
-  if(!user || !pw) return alert("Nhập đủ thông tin");
-
-  await addDoc(collection(db,"accounts"),{
-    username:user,
-    password:pw,
-    status:"ready"
-  });
-
-  alert("Đã thêm!");
+function save(){
+  let data = listAcc.value.trim().split("\n");
+  localStorage.setItem("accounts", JSON.stringify(data));
   loadAcc();
 }
 
-async function loadAcc(){
-  const snap = await getDocs(collection(db,"accounts"));
-  const list = document.getElementById("list");
-
-  list.innerHTML="";
-  let used = 0;
-
-  snap.forEach(doc=>{
-    const data = doc.data();
-
-    if(data.status === "used") used++;
-
-    list.innerHTML += `
-      <tr>
-        <td>${data.username}</td>
-        <td>${data.password}</td>
-        <td>${data.status}</td>
-      </tr>
-    `;
-  });
-
-  document.getElementById("count").innerText = used;
+function addAcc(){
+  if(newAcc.value.trim() === "") return;
+  listAcc.value += "\n" + newAcc.value;
+  newAcc.value="";
 }
+
+function clearAcc(){
+  if(confirm("Xóa hết acc?")){
+    localStorage.removeItem("accounts");
+    loadAcc();
+  }
+}
+
 </script>
 
 </body>
