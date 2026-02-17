@@ -2,106 +2,140 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>ADMIN - Tặng Acc</title>
+  <title>ADMIN PANEL</title>
   <style>
-    body{font-family:sans-serif;background:#111;color:#fff;text-align:center}
-    input,button{padding:10px;margin:5px;border-radius:8px;border:none}
-    button{background:red;color:#fff}
-    .box{background:#222;padding:15px;border-radius:10px;margin:10px}
+    body{
+      background:#0f172a;
+      color:white;
+      font-family:sans-serif;
+      text-align:center;
+    }
+    .box{
+      margin-top:80px;
+    }
+    input,button{
+      padding:10px;
+      margin:5px;
+      border-radius:8px;
+      border:none;
+    }
+    button{
+      background:red;
+      color:white;
+      cursor:pointer;
+    }
+    table{
+      margin:auto;
+      margin-top:20px;
+      background:white;
+      color:black;
+      border-collapse:collapse;
+    }
+    td,th{
+      padding:8px 15px;
+      border:1px solid #ccc;
+    }
   </style>
 </head>
 <body>
 
-<h2>🔐 ADMIN PANEL</h2>
-
-<div id="login">
+<div class="box" id="loginBox">
+  <h2>🔐 ADMIN LOGIN</h2>
   <input type="password" id="pass" placeholder="Mật khẩu admin">
   <button onclick="login()">Đăng nhập</button>
 </div>
 
-<div id="panel" style="display:none">
+<div id="panel" style="display:none;">
+  <h2>🎯 ADMIN PANEL</h2>
 
   <h3>➕ Thêm ACC</h3>
   <input id="user" placeholder="Username">
-  <input id="pwd" placeholder="Password">
+  <input id="pw" placeholder="Password">
   <button onclick="addAcc()">Thêm</button>
 
-  <h3>📊 Thống kê</h3>
-  <div id="stats"></div>
+  <h3>📦 Danh sách ACC</h3>
+  <table>
+    <thead>
+      <tr>
+        <th>User</th>
+        <th>Pass</th>
+        <th>Trạng thái</th>
+      </tr>
+    </thead>
+    <tbody id="list"></tbody>
+  </table>
 
-  <h3>📦 Danh sách acc</h3>
-  <div id="list"></div>
-
+  <h3>📊 Đã phát: <span id="count">0</span></h3>
 </div>
 
+<!-- Firebase -->
 <script type="module">
-
-import { db } from './firebase.js'
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-collection, addDoc, getDocs, doc, deleteDoc
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"
+  getFirestore, collection, addDoc, getDocs
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-const ADMIN_PASS = "123456" // đổi mật khẩu tại đây
+const firebaseConfig = {
+  apiKey: "DÁN API KEY",
+  authDomain: "DÁN DOMAIN",
+  projectId: "DÁN ID",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 window.login = function(){
-  if(document.getElementById("pass").value == ADMIN_PASS){
-    document.getElementById("login").style.display="none"
-    document.getElementById("panel").style.display="block"
-    loadData()
+  const mk = document.getElementById("pass").value;
+
+  if(mk === "admin123"){
+    document.getElementById("loginBox").style.display="none";
+    document.getElementById("panel").style.display="block";
+    loadAcc();
   }else{
-    alert("Sai mật khẩu")
+    alert("Sai mật khẩu!");
   }
 }
 
 window.addAcc = async function(){
+  const user = document.getElementById("user").value;
+  const pw = document.getElementById("pw").value;
 
-  const user = document.getElementById("user").value
-  const pwd = document.getElementById("pwd").value
+  if(!user || !pw) return alert("Nhập đủ thông tin");
 
   await addDoc(collection(db,"accounts"),{
     username:user,
-    password:pwd,
+    password:pw,
     status:"ready"
-  })
+  });
 
-  loadData()
+  alert("Đã thêm!");
+  loadAcc();
 }
 
-async function loadData(){
+async function loadAcc(){
+  const snap = await getDocs(collection(db,"accounts"));
+  const list = document.getElementById("list");
 
-  const snap = await getDocs(collection(db,"accounts"))
+  list.innerHTML="";
+  let used = 0;
 
-  let ready = 0
-  let used = 0
-  let html = ""
+  snap.forEach(doc=>{
+    const data = doc.data();
 
-  snap.forEach(docu=>{
+    if(data.status === "used") used++;
 
-    const data = docu.data()
+    list.innerHTML += `
+      <tr>
+        <td>${data.username}</td>
+        <td>${data.password}</td>
+        <td>${data.status}</td>
+      </tr>
+    `;
+  });
 
-    if(data.status=="ready") ready++
-    else used++
-
-    html += `
-    <div class="box">
-      👤 ${data.username} | ${data.password} | ${data.status}
-      <br>
-      <button onclick="del('${docu.id}')">Xóa</button>
-    </div>
-    `
-  })
-
-  document.getElementById("stats").innerHTML =
-    `✅ Còn: ${ready} | ❌ Đã phát: ${used}`
-
-  document.getElementById("list").innerHTML = html
+  document.getElementById("count").innerText = used;
 }
-
-window.del = async function(id){
-  await deleteDoc(doc(db,"accounts",id))
-  loadData()
-}
-
 </script>
+
 </body>
 </html>
