@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Tặng Acc Free VIP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body{
+      font-family: Arial;
+      background: linear-gradient(45deg,#ff416c,#ff4b2b);
+      color:white;
+      text-align:center;
+      padding:20px;
+    }
+
+    .box{
+      background:white;
+      color:black;
+      padding:20px;
+      border-radius:15px;
+      max-width:400px;
+      margin:auto;
+      box-shadow:0 0 15px rgba(0,0,0,0.3);
+    }
+
+    button{
+      background:#ff4b2b;
+      color:white;
+      border:none;
+      padding:15px;
+      width:100%;
+      font-size:18px;
+      border-radius:10px;
+      margin-top:15px;
+    }
+
+    button:hover{
+      background:#ff416c;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>🎁 TẶNG ACC FREE VIP 🎁</h1>
+  <p>👥 Đang nhận: <span id="online"></span></p>
+
+  <div class="box">
+
+    <h2>Nhận Acc Ngẫu Nhiên</h2>
+
+    <button onclick="nhanAcc()">NHẬN ACC</button>
+
+    <p id="ketqua"></p>
+
+  </div>
+
+<script>
+  // fake người online
+  setInterval(()=>{
+    document.getElementById("online").innerText =
+      Math.floor(Math.random()*100)+50;
+  },2000);
+
+
+  function nhanAcc(){
+
+    let last = localStorage.getItem("cooldown");
+
+    if(last && Date.now() - last < 1800000){
+      alert("⏱ Bạn đã nhận rồi! Quay lại sau 30 phút");
+      return;
+    }
+
+    localStorage.setItem("cooldown",Date.now());
+
+    // 👉 link rút gọn của bạn
+    window.location.href = "LINK4M_CUA_BAN";
+  }
+</script>
+
+</body>
+</html>
