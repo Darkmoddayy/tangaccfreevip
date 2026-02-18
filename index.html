@@ -2,83 +2,232 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Tặng Acc VIP</title>
-<style>
-body{background:#06141b;color:#0ff;text-align:center;font-family:Arial}
-.box{margin-top:80px;padding:30px;border:2px solid #0ff;box-shadow:0 0 20px #0ff}
-button{padding:15px 30px;background:#00ffd5;border:none;font-weight:bold}
-</style>
+<title>DARKMODDAYY MAX LEVEL</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
 
+<div id="userBox" class="box">
+<h1>🎁 NHẬN ACC VIP</h1>
+<h2 id="totalAcc"></h2>
+<button onclick="nhanAcc()">NH поясN ACC</button>
+<h2 id="status"></h2>
+</div>
+
+<div id="adminBox" style="display:none">
+
 <div class="box">
-<h1>🎁 TẶNG ACC FREE VIP</h1>
-<h2 id="count">0</h2>
+<h2>🔐 ADMIN LOGIN</h2>
+<input type="password" id="pass">
+<button onclick="login()">Đăng nhập</button>
+<h3 id="msg"></h3>
+</div>
 
-<button onclick="getAcc()">NHẬN ACC NGAY</button>
+<div id="panel" style="display:none">
 
-<h3 id="loading"></h3>
-<h2 id="acc"></h2>
+<div class="box">
+<h2>📦 Thêm acc</h2>
+<input id="acc">
+<button onclick="addAcc()">Thêm</button>
+
+<textarea id="bulk" placeholder="Import acc mỗi dòng"></textarea>
+<button onclick="importAcc()">IMPORT</button>
+</div>
+
+<div class="box">
+<h2>📋 ACC LIST</h2>
+<ul id="list"></ul>
+<h3>Tổng: <span id="total"></span></h3>
+</div>
+
+<div class="box">
+<h2>🏆 TOP USER</h2>
+<div id="topUser"></div>
+</div>
+
+<div class="box">
+<h2>📊 USER THEO NGÀY</h2>
+<canvas id="chart"></canvas>
+</div>
+
+<div class="box">
+👥 Online: <span id="online"></span>
+</div>
+
+</div>
 </div>
 
 <script type="module">
 
-import { firebaseConfig } from "./config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, onValue, get, child, remove, set } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, get, set, remove, push, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const app = initializeApp({
+apiKey:"AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
 
-const device = localStorage.getItem("device") || Math.random().toString(36);
-localStorage.setItem("device",device);
+const db=getDatabase(app);
 
-function today(){
-return new Date().toISOString().slice(0,10);
+// ADMIN URL SECRET
+const url=new URLSearchParams(window.location.search);
+if(url.get("darkmod")=="vipadmin"){
+adminBox.style.display="block";
+userBox.style.display="none";
 }
 
-onValue(ref(db,"acc"),snap=>{
-document.getElementById("count").innerHTML=snap.size;
-})
+// DEVICE ID
+const device=localStorage.getItem("device")||Math.random();
+localStorage.setItem("device",device);
 
-window.getAcc = async function(){
+// ONLINE TRACK
+set(ref(db,"online/"+device),true);
 
-const userRef = ref(db,"users/"+device);
+// TOTAL ACC REALTIME
+onValue(ref(db,"accounts"),snap=>{
+totalAcc.innerHTML="📦 Acc còn: "+snap.size;
+});
 
-const snap = await get(userRef);
+// NHẬN ACC
+window.nhanAcc=async()=>{
 
-let data = snap.val();
+status.innerHTML="⏳ Đang kiểm tra vượt link...";
 
-if(data && data.date===today() && data.count>=2){
-alert("❌ Bạn đã nhận đủ hôm nay");
+if(!url.get("done")){
+location.href="https://link4m.co/st?api=69100b1afc003f0eba59c189&url="+encodeURIComponent(location.href+"?done=1");
 return;
 }
 
-document.getElementById("loading").innerHTML="⏳ Đang kiểm tra vượt link...";
+let today=new Date().toISOString().slice(0,10);
 
-setTimeout(async()=>{
+let userRef=ref(db,"users/"+device);
+let snap=await get(userRef);
 
-const accSnap = await get(child(ref(db),"acc"));
+let data=snap.val()||{count:0,date:today};
 
-let arr=[];
+if(data.date!==today){
+data.count=0;
+data.date=today;
+}
 
-accSnap.forEach(i=>arr.push({key:i.key,val:i.val()}));
+if(data.count>=2){
+status.innerHTML="❌ Đã nhận 2 acc hôm nay";
+return;
+}
 
-let random = arr[Math.floor(Math.random()*arr.length)];
+let accSnap=await get(ref(db,"accounts"));
 
-document.getElementById("acc").innerHTML=random.val;
+if(!accSnap.exists()){
+status.innerHTML="🔥 HẾT ACC 🔥";
+return;
+}
 
-remove(ref(db,"acc/"+random.key));
+let list=accSnap.val();
+let keys=Object.keys(list);
+let rand=keys[Math.floor(Math.random()*keys.length)];
+let acc=list[rand];
 
-set(userRef,{
-date:today(),
-count:(data?.count||0)+1
+await remove(ref(db,"accounts/"+rand));
+
+data.count++;
+await set(userRef,data);
+
+// LOG HISTORY
+push(ref(db,"logs"),{
+device:device,
+acc:acc,
+time:new Date().toLocaleString()
 });
 
-},3000)
+status.innerHTML="✅ "+acc;
+};
+
+// LOGIN ADMIN
+let fail=0;
+
+window.login=()=>{
+if(pass.value==="123456"){
+panel.style.display="block";
+loadAdmin();
+}else{
+fail++;
+msg.innerHTML="❌ Sai mật khẩu";
+if(fail>=5){
+msg.innerHTML="🔒 Khóa 5 phút";
+setTimeout(()=>fail=0,300000);
+}
+}
+};
+
+// ADMIN LOAD
+function loadAdmin(){
+
+onValue(ref(db,"accounts"),snap=>{
+let html="";
+let total=0;
+
+snap.forEach(i=>{
+total++;
+html+=`<li>${i.val()} <button onclick="delAcc('${i.key}')">X</button></li>`;
+});
+
+list.innerHTML=html;
+document.getElementById("total").innerHTML=total;
+});
+
+// ONLINE
+onValue(ref(db,"online"),snap=>{
+online.innerHTML=snap.size;
+});
+
+// TOP USER
+onValue(ref(db,"users"),snap=>{
+let arr=[];
+snap.forEach(i=>arr.push(i.val().count||0));
+arr.sort((a,b)=>b-a);
+topUser.innerHTML=arr.slice(0,5).join("<br>");
+});
+
+// CHART
+onValue(ref(db,"logs"),snap=>{
+let map={};
+
+snap.forEach(i=>{
+let d=i.val().time.split(",")[0];
+map[d]=(map[d]||0)+1;
+});
+
+new Chart(chart,{
+type:"line",
+data:{
+labels:Object.keys(map),
+datasets:[{label:"Lượt nhận",data:Object.values(map)}]
+}
+});
+});
 
 }
+
+// ADD ACC
+window.addAcc=()=>{
+push(ref(db,"accounts"),acc.value);
+acc.value="";
+};
+
+// IMPORT
+window.importAcc=()=>{
+bulk.value.split("\n").forEach(a=>{
+if(a.trim()!="") push(ref(db,"accounts"),a);
+});
+bulk.value="";
+};
+
+// DELETE
+window.delAcc=(id)=>{
+remove(ref(db,"accounts/"+id));
+};
 
 </script>
 </body>
