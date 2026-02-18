@@ -1,84 +1,124 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tặng Acc Free</title>
+  <meta charset="UTF-8">
+  <title>Tặng Acc Free VIP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+      color:white;
+      text-align:center;
+    }
 
-<style>
-body{background:#0f172a;color:white;font-family:sans-serif;text-align:center}
-.box{background:#1e293b;padding:20px;border-radius:15px;margin:20px}
-button{background:#22c55e;border:none;padding:12px;width:100%;border-radius:10px;color:white;font-size:16px}
-</style>
+    .box{
+      margin-top:80px;
+      padding:25px;
+      background: rgba(0,0,0,0.4);
+      border-radius:15px;
+      width:90%;
+      max-width:400px;
+      margin-left:auto;
+      margin-right:auto;
+      box-shadow:0 0 20px cyan;
+    }
+
+    button{
+      padding:15px 25px;
+      border:none;
+      border-radius:10px;
+      background:linear-gradient(45deg,#00ffff,#00ff99);
+      font-size:18px;
+      font-weight:bold;
+      cursor:pointer;
+      margin-top:15px;
+    }
+
+    button:hover{
+      transform:scale(1.05);
+    }
+
+    .logo{
+      font-size:28px;
+      font-weight:bold;
+      color:cyan;
+    }
+  </style>
 </head>
 
 <body>
 
-<div class="box">
-<h2>🎁 NHẬN ACC FREE</h2>
+  <div class="box">
+    <div class="logo">🎁 TẶNG ACC FREE VIP</div>
 
-<p>📊 Tổng acc: <span id="total">0</span></p>
+    <h3>📊 Tổng acc còn:</h3>
+    <h1 id="total">0</h1>
 
-<button onclick="getLink()">NHẬN ACC</button>
+    <button onclick="nhanAcc()">NHẬN ACC NGAY</button>
+  </div>
 
-<h3 id="acc"></h3>
-</div>
+<script type="module">
 
-<script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, onValue, get, remove, child }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
 const firebaseConfig = {
-apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.firebaseio.com",
-projectId: "tangaccfreevip-2f58c",
+  apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+  authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
+  databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tangaccfreevip-2f58c",
+  storageBucket: "tangaccfreevip-2f58c.firebasestorage.app",
+  messagingSenderId: "970018428565",
+  appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-firebase.database().ref("accounts").on("value", snap=>{
-total.innerText = snap.numChildren();
+const accRef = ref(db,"accounts");
+const total = document.getElementById("total");
+
+
+// 📊 HIỆN TỔNG ACC REALTIME
+onValue(accRef,(snapshot)=>{
+  if(snapshot.exists()){
+    total.innerText = Object.keys(snapshot.val()).length;
+  }else{
+    total.innerText = 0;
+  }
 });
 
-function getLink(){
 
-if(localStorage.getItem("deviceID")){
-alert("Bạn đã nhận rồi!");
-return;
-}
+// 🎁 NHẬN ACC
+window.nhanAcc = async function(){
 
-localStorage.setItem("verify","ok");
-location.href="LINK4M_CUA_BAN";
-}
+  const device = localStorage.getItem("nhan_acc");
 
-window.onload = ()=>{
+  if(device){
+    alert("⛔ Bạn đã nhận acc rồi!");
+    return;
+  }
 
-if(localStorage.getItem("verify")=="ok"){
+  const snap = await get(accRef);
 
-firebase.database().ref("accounts").once("value", snap=>{
+  if(!snap.exists()){
+    alert("❌ Hết acc rồi!");
+    return;
+  }
 
-if(snap.exists()){
+  const key = Object.keys(snap.val())[0];
+  const acc = snap.val()[key];
 
-let key = Object.keys(snap.val())[0];
-let acc = snap.val()[key];
+  await remove(child(accRef,key));
 
-accBox.innerText = acc;
+  localStorage.setItem("nhan_acc","done");
 
-firebase.database().ref("accounts/"+key).remove();
-
-localStorage.setItem("deviceID","done");
-
-}else{
-accBox.innerText="❌ Hết acc rồi";
-}
-
-localStorage.removeItem("verify");
-
-});
-
-}
-
+  // 👉 LINK4M CỦA BẠN
+  window.location.href = "https://link4m.co/yourlink";
 }
 
 </script>
