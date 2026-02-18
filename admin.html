@@ -2,180 +2,187 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>ADMIN PRO MAX</title>
+<title>ADMIN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{
-  background:#0f0f0f;
-  color:#0ff;
-  font-family:Arial;
-  text-align:center;
-}
-.box{
-  border:1px solid #0ff;
-  margin:15px;
-  padding:15px;
-  box-shadow:0 0 15px #0ff;
-}
-input,button,textarea{
-  padding:10px;
-  margin:5px;
-  width:90%;
-}
-button{
-  background:#0ff;
-  border:none;
-  cursor:pointer;
-}
+body{background:#000;color:#0ff;font-family:Arial;text-align:center}
+.box{border:2px solid #0ff;padding:20px;margin:20px;border-radius:15px;box-shadow:0 0 15px #0ff}
+input,textarea{width:90%;margin:5px;padding:10px;background:#000;color:#0ff;border:1px solid #0ff}
+button{padding:10px 20px;background:#000;color:#0ff;border:1px solid #0ff}
 </style>
 </head>
 
 <body>
 
-<div id="loginBox" class="box">
+<div id="login">
 <h2>🔐 ADMIN LOGIN</h2>
 <input type="password" id="pass" placeholder="Nhập mật khẩu">
-<button onclick="login()">Đăng nhập</button>
+<br><br>
+<button onclick="login()">ĐĂNG NHẬP</button>
 <p id="msg"></p>
 </div>
 
 <div id="panel" style="display:none">
 
-<h2>⚡ ADMIN DASHBOARD</h2>
-
 <div class="box">
-📊 Tổng acc: <b id="totalAcc">0</b><br>
-👥 Online: <b id="online">0</b>
+<h3>📦 THÊM ACC</h3>
+<input id="acc" placeholder="tk|mk">
+<button onclick="addAcc()">THÊM</button>
 </div>
 
 <div class="box">
-<h3>📦 Import acc</h3>
-<textarea id="importAcc" placeholder="user|pass"></textarea>
+<h3>📦 IMPORT ACC</h3>
+<textarea id="import"></textarea>
 <button onclick="importAcc()">IMPORT</button>
 </div>
 
 <div class="box">
-<h3>📋 Danh sách acc</h3>
-<div id="listAcc"></div>
+<h3>📊 ACC CÒN: <span id="total"></span></h3>
 </div>
 
 <div class="box">
-<h3>📈 User theo ngày</h3>
+<h3>👥 ONLINE: <span id="online"></span></h3>
+</div>
+
+<div class="box">
+<h3>🏆 TOP USER</h3>
+<div id="top"></div>
+</div>
+
+<div class="box">
 <canvas id="chart"></canvas>
 </div>
 
 <div class="box">
-<h3>🏆 Top user</h3>
-<div id="topUser"></div>
+<h3>DANH SÁCH ACC</h3>
+<div id="list"></div>
 </div>
 
 </div>
 
-<!-- FIREBASE -->
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import {
-getDatabase, ref, set, push, onValue, remove
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, get }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
 authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
 databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
 projectId: "tangaccfreevip-2f58c",
-storageBucket: "tangaccfreevip-2f58c.firebasestorage.app",
+storageBucket: "tangaccfreevip-2f58c.appspot.com",
 messagingSenderId: "970018428565",
 appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = getDatabase();
+
+// 🔐 LOGIN
+
+let fail = localStorage.getItem("fail") || 0;
 
 window.login = function(){
-let lock = localStorage.getItem("lock");
-let fail = Number(localStorage.getItem("fail") || 0);
-
-if(lock && Date.now()<lock){
-msg.innerHTML="❌ Bị khoá";
+if(fail>=5){
+msg.innerText="❌ Bị khóa";
 return;
 }
-
-if(pass.value==="123456"){
-loginBox.style.display="none";
+if(pass.value=="123456"){
+login.style.display="none";
 panel.style.display="block";
-}
-else{
+}else{
 fail++;
 localStorage.setItem("fail",fail);
-msg.innerHTML="❌ Sai mật khẩu";
-
-if(fail>=5){
-localStorage.setItem("lock",Date.now()+600000);
-msg.innerHTML="🔒 Khoá 10 phút";
-}
+msg.innerText="Sai mật khẩu";
 }
 }
 
-function importAcc(){
-let data = importAcc.value.split("\n");
-data.forEach(acc=>{
-push(ref(db,"accounts"),{acc});
+// ➕ ADD ACC
+
+window.addAcc = function(){
+push(ref(db,"accounts"),{acc:acc.value});
+acc.value="";
+}
+
+// 📦 IMPORT
+
+window.importAcc = function(){
+let data = document.getElementById("import").value.split("\n");
+data.forEach(a=>{
+push(ref(db,"accounts"),{acc:a});
 });
 }
+
+// 📦 LIST ACC
 
 onValue(ref(db,"accounts"),snap=>{
-let html="";
-let total=0;
+total.innerText = snap.size;
+
+list.innerHTML="";
 
 snap.forEach(i=>{
-total++;
-html+=`
-<div>
-${i.val().acc}
-<button onclick="delAcc('${i.key}')">X</button>
-</div>`;
+list.innerHTML += `
+<p>${i.val().acc}
+<button onclick="del('${i.key}')">X</button></p>`;
+});
 });
 
-listAcc.innerHTML=html;
-totalAcc.innerHTML=total;
-});
+window.del = key => remove(ref(db,"accounts/"+key));
 
-window.delAcc = function(id){
-remove(ref(db,"accounts/"+id));
-}
+// 👥 ONLINE
 
-//// USER ONLINE
 onValue(ref(db,"online"),snap=>{
-online.innerHTML = snap.size;
+online.innerText = snap.size;
 });
 
-//// THỐNG KÊ USER
-onValue(ref(db,"stats"),snap=>{
-let labels=[];
-let data=[];
+// 🏆 TOP USER
+
+onValue(ref(db,"history"),snap=>{
+let topData={};
+
+snap.forEach(dev=>{
+dev.forEach(date=>{
+topData[dev.key]=(topData[dev.key]||0)+date.val();
+});
+});
+
+let sorted = Object.entries(topData).sort((a,b)=>b[1]-a[1]);
+
+top.innerHTML="";
+sorted.slice(0,5).forEach(i=>{
+top.innerHTML+=`<p>${i[0]} : ${i[1]}</p>`;
+});
+});
+
+// 📊 CHART
+
+onValue(ref(db,"users"),snap=>{
+
+let perDay={};
 
 snap.forEach(i=>{
-labels.push(i.key);
-data.push(i.val());
+let d = i.val().date;
+perDay[d]=(perDay[d]||0)+1;
 });
 
 new Chart(document.getElementById("chart"),{
 type:"line",
-data:{labels,datasets:[{label:"User",data}]}
-});
+data:{
+labels:Object.keys(perDay),
+datasets:[{
+label:"User",
+data:Object.values(perDay),
+borderColor:"#0ff"
+}]
+}
 });
 
-//// TOP USER
-onValue(ref(db,"top"),snap=>{
-let html="";
-snap.forEach(i=>{
-html+=`<div>${i.key} : ${i.val()}</div>`;
-});
-topUser.innerHTML=html;
 });
 
 </script>
-
 </body>
 </html>
