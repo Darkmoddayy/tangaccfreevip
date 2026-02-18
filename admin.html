@@ -2,187 +2,103 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ADMIN</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-body{background:#000;color:#0ff;font-family:Arial;text-align:center}
-.box{border:2px solid #0ff;padding:20px;margin:20px;border-radius:15px;box-shadow:0 0 15px #0ff}
-input,textarea{width:90%;margin:5px;padding:10px;background:#000;color:#0ff;border:1px solid #0ff}
-button{padding:10px 20px;background:#000;color:#0ff;border:1px solid #0ff}
+body{
+background:#000;
+color:#0ff;
+font-family:sans-serif;
+text-align:center;
+}
+
+.box{
+border:2px solid #0ff;
+padding:20px;
+margin:20px;
+box-shadow:0 0 15px #0ff;
+}
+
+input,button{
+padding:10px;
+margin:10px;
+width:80%;
+}
+
+button{
+background:#0ff;
+border:none;
+font-weight:bold;
+}
 </style>
 </head>
 
 <body>
 
-<div id="login">
+<!-- LOGIN -->
+<div id="login" class="box">
 <h2>🔐 ADMIN LOGIN</h2>
+
 <input type="password" id="pass" placeholder="Nhập mật khẩu">
-<br><br>
-<button onclick="login()">ĐĂNG NHẬP</button>
+<br>
+<button onclick="login()">Đăng nhập</button>
+
 <p id="msg"></p>
 </div>
 
-<div id="panel" style="display:none">
+<!-- PANEL -->
+<div id="panel" style="display:none" class="box">
+<h2>⚡ ADMIN DASHBOARD</h2>
+<p>✅ Đăng nhập thành công</p>
 
-<div class="box">
-<h3>📦 THÊM ACC</h3>
-<input id="acc" placeholder="tk|mk">
-<button onclick="addAcc()">THÊM</button>
+<button onclick="logout()">Đăng xuất</button>
 </div>
 
-<div class="box">
-<h3>📦 IMPORT ACC</h3>
-<textarea id="import"></textarea>
-<button onclick="importAcc()">IMPORT</button>
-</div>
+<script>
 
-<div class="box">
-<h3>📊 ACC CÒN: <span id="total"></span></h3>
-</div>
+const PASS = "123456"
 
-<div class="box">
-<h3>👥 ONLINE: <span id="online"></span></h3>
-</div>
+const passInput = document.getElementById("pass")
+const msg = document.getElementById("msg")
 
-<div class="box">
-<h3>🏆 TOP USER</h3>
-<div id="top"></div>
-</div>
+let fail = localStorage.getItem("fail") || 0
 
-<div class="box">
-<canvas id="chart"></canvas>
-</div>
+function login(){
 
-<div class="box">
-<h3>DANH SÁCH ACC</h3>
-<div id="list"></div>
-</div>
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, get }
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
-
-const firebaseConfig = {
-apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "tangaccfreevip-2f58c",
-storageBucket: "tangaccfreevip-2f58c.appspot.com",
-messagingSenderId: "970018428565",
-appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getDatabase();
-
-// 🔐 LOGIN
-
-let fail = localStorage.getItem("fail") || 0;
-
-window.login = function(){
-if(fail>=5){
-msg.innerText="❌ Bị khóa";
-return;
+if(fail >= 5){
+msg.innerText = "❌ Sai quá 5 lần – reload sau!"
+return
 }
-if(pass.value=="123456"){
-login.style.display="none";
-panel.style.display="block";
+
+if(passInput.value === PASS){
+
+localStorage.setItem("admin","ok")
+
+document.getElementById("login").style.display="none"
+document.getElementById("panel").style.display="block"
+
 }else{
-fail++;
-localStorage.setItem("fail",fail);
-msg.innerText="Sai mật khẩu";
-}
-}
 
-// ➕ ADD ACC
+fail++
+localStorage.setItem("fail",fail)
 
-window.addAcc = function(){
-push(ref(db,"accounts"),{acc:acc.value});
-acc.value="";
+msg.innerText = "❌ Sai mật khẩu ("+fail+"/5)"
 }
 
-// 📦 IMPORT
-
-window.importAcc = function(){
-let data = document.getElementById("import").value.split("\n");
-data.forEach(a=>{
-push(ref(db,"accounts"),{acc:a});
-});
 }
 
-// 📦 LIST ACC
-
-onValue(ref(db,"accounts"),snap=>{
-total.innerText = snap.size;
-
-list.innerHTML="";
-
-snap.forEach(i=>{
-list.innerHTML += `
-<p>${i.val().acc}
-<button onclick="del('${i.key}')">X</button></p>`;
-});
-});
-
-window.del = key => remove(ref(db,"accounts/"+key));
-
-// 👥 ONLINE
-
-onValue(ref(db,"online"),snap=>{
-online.innerText = snap.size;
-});
-
-// 🏆 TOP USER
-
-onValue(ref(db,"history"),snap=>{
-let topData={};
-
-snap.forEach(dev=>{
-dev.forEach(date=>{
-topData[dev.key]=(topData[dev.key]||0)+date.val();
-});
-});
-
-let sorted = Object.entries(topData).sort((a,b)=>b[1]-a[1]);
-
-top.innerHTML="";
-sorted.slice(0,5).forEach(i=>{
-top.innerHTML+=`<p>${i[0]} : ${i[1]}</p>`;
-});
-});
-
-// 📊 CHART
-
-onValue(ref(db,"users"),snap=>{
-
-let perDay={};
-
-snap.forEach(i=>{
-let d = i.val().date;
-perDay[d]=(perDay[d]||0)+1;
-});
-
-new Chart(document.getElementById("chart"),{
-type:"line",
-data:{
-labels:Object.keys(perDay),
-datasets:[{
-label:"User",
-data:Object.values(perDay),
-borderColor:"#0ff"
-}]
+function logout(){
+localStorage.removeItem("admin")
+location.reload()
 }
-});
 
-});
+if(localStorage.getItem("admin")=="ok"){
+document.getElementById("login").style.display="none"
+document.getElementById("panel").style.display="block"
+}
 
 </script>
+
 </body>
 </html>
