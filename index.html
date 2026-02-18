@@ -1,127 +1,129 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Tặng Acc Free VIP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>🎁 Tặng Acc VIP</title>
 
-  <style>
-    body{
-      margin:0;
-      font-family: Arial, sans-serif;
-      background: linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-      color:white;
-      text-align:center;
-    }
-
-    .box{
-      margin-top:80px;
-      padding:25px;
-      background: rgba(0,0,0,0.4);
-      border-radius:15px;
-      width:90%;
-      max-width:400px;
-      margin-left:auto;
-      margin-right:auto;
-      box-shadow:0 0 20px cyan;
-    }
-
-    button{
-      padding:15px 25px;
-      border:none;
-      border-radius:10px;
-      background:linear-gradient(45deg,#00ffff,#00ff99);
-      font-size:18px;
-      font-weight:bold;
-      cursor:pointer;
-      margin-top:15px;
-    }
-
-    button:hover{
-      transform:scale(1.05);
-    }
-
-    .logo{
-      font-size:28px;
-      font-weight:bold;
-      color:cyan;
-    }
-  </style>
+<style>
+body{
+background:#0f0f0f;
+color:#0ff;
+text-align:center;
+font-family:Arial;
+}
+button{
+padding:15px;
+background:#0ff;
+border:none;
+margin:10px;
+font-size:18px;
+box-shadow:0 0 15px #0ff;
+}
+#acc{margin-top:20px;font-size:20px;}
+</style>
 </head>
 
 <body>
 
-  <div class="box">
-    <div class="logo">🎁 TẶNG ACC FREE VIP</div>
+<h2>🎁 NHẬN ACC VIP FREE</h2>
+<button onclick="getAcc()">NHẬN ACC</button>
 
-    <h3>📊 Tổng acc còn:</h3>
-    <h1 id="total">0</h1>
-
-    <button onclick="nhanAcc()">NHẬN ACC NGAY</button>
-  </div>
+<div id="loading"></div>
+<div id="acc"></div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, onValue, get, remove, child }
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import {
+getDatabase, ref, onValue, get, child, remove, set, update
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-  authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-  databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "tangaccfreevip-2f58c",
-  storageBucket: "tangaccfreevip-2f58c.firebasestorage.app",
-  messagingSenderId: "970018428565",
-  appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
+apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
+databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "tangaccfreevip-2f58c",
+storageBucket: "tangaccfreevip-2f58c.firebasestorage.app",
+messagingSenderId: "970018428565",
+appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const accRef = ref(db,"accounts");
-const total = document.getElementById("total");
+const device = localStorage.getItem("device") || Math.random().toString(36).substr(2);
+localStorage.setItem("device",device);
 
+const today = new Date().toLocaleDateString();
 
-// 📊 HIỆN TỔNG ACC REALTIME
-onValue(accRef,(snapshot)=>{
-  if(snapshot.exists()){
-    total.innerText = Object.keys(snapshot.val()).length;
-  }else{
-    total.innerText = 0;
-  }
-});
+//// ONLINE
+set(ref(db,"online/"+device),true);
+window.onbeforeunload = ()=> set(ref(db,"online/"+device),null);
 
-
-// 🎁 NHẬN ACC
-window.nhanAcc = async function(){
-
-  const device = localStorage.getItem("nhan_acc");
-
-  if(device){
-    alert("⛔ Bạn đã nhận acc rồi!");
-    return;
-  }
-
-  const snap = await get(accRef);
-
-  if(!snap.exists()){
-    alert("❌ Hết acc rồi!");
-    return;
-  }
-
-  const key = Object.keys(snap.val())[0];
-  const acc = snap.val()[key];
-
-  await remove(child(accRef,key));
-
-  localStorage.setItem("nhan_acc","done");
-
-  // 👉 LINK4M CỦA BẠN
-  window.location.href = "https://link4m.co/yourlink";
+//// RESET NGÀY
+if(localStorage.getItem("date")!=today){
+localStorage.setItem("date",today);
+localStorage.setItem("count",0);
 }
 
-</script>
+//// LINK4M
+const link4m = "https://link4m.co/st?api=69100b1afc003f0eba59c189&url=";
 
+window.getAcc = async function(){
+
+if(localStorage.getItem("count")>=2){
+alert("❌ Mỗi ngày chỉ nhận 2 acc");
+return;
+}
+
+loading.innerHTML="⏳ Đang kiểm tra vượt link...";
+setTimeout(()=>{
+
+if(!document.referrer.includes("link4m")){
+location.href = link4m + location.href;
+return;
+}
+
+showAcc();
+
+},3000);
+
+}
+
+async function showAcc(){
+
+const snapshot = await get(ref(db,"accounts"));
+
+let list=[];
+snapshot.forEach(i=>{
+list.push({key:i.key,acc:i.val().acc});
+});
+
+if(list.length==0){
+acc.innerHTML="❌ Hết acc";
+return;
+}
+
+let random = list[Math.floor(Math.random()*list.length)];
+
+acc.innerHTML="🎉 "+random.acc;
+
+remove(ref(db,"accounts/"+random.key));
+
+//// ĐẾM
+let count = Number(localStorage.getItem("count")||0)+1;
+localStorage.setItem("count",count);
+
+//// STATS
+update(ref(db,"stats/"+today),{
+value: (await get(ref(db,"stats/"+today+"/value"))).val()+1 || 1
+});
+
+//// TOP USER
+update(ref(db,"top/"+device),{
+value: (await get(ref(db,"top/"+device+"/value"))).val()+1 || 1
+});
+
+}
+</script>
 </body>
 </html>
