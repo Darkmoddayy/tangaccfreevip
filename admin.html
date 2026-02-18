@@ -3,67 +3,239 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+<title>ADMIN PRO MAX</title>
 
 <style>
-body{background:#0f172a;color:white;text-align:center;font-family:sans-serif}
-.box{background:#1e293b;padding:20px;border-radius:15px;margin:20px}
-button{background:#22c55e;border:none;padding:12px;width:100%;border-radius:10px;color:white}
+body{
+  margin:0;
+  font-family:Arial;
+  background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+  color:white;
+  text-align:center;
+}
+
+.box{
+  background:rgba(0,0,0,0.4);
+  margin:20px auto;
+  padding:20px;
+  border-radius:15px;
+  width:95%;
+  max-width:500px;
+  box-shadow:0 0 15px cyan;
+}
+
+input, textarea{
+  width:90%;
+  padding:12px;
+  margin:8px;
+  border:none;
+  border-radius:8px;
+}
+
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:8px;
+  margin:5px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.add{background:#00ffcc;}
+.del{background:#ff4d4d;color:white;}
+.import{background:orange;}
+.logout{background:gray;color:white;}
+
+.accItem{
+  background:rgba(255,255,255,0.1);
+  margin:5px;
+  padding:8px;
+  border-radius:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:13px;
+}
 </style>
 </head>
 
 <body>
 
-<div class="box">
-
-<h2>🔐 ADMIN PANEL</h2>
-
-<input type="password" id="mk" placeholder="Mật khẩu">
+<!-- 🔐 LOGIN -->
+<div class="box" id="loginBox">
+<h2>🔐 ADMIN LOGIN</h2>
+<input type="password" id="pass" placeholder="Nhập mật khẩu">
+<br>
 <button onclick="login()">Đăng nhập</button>
+<p id="msg"></p>
+</div>
 
-<div id="admin" style="display:none">
 
-<input id="acc" placeholder="user|pass">
-<button onclick="addAcc()">Thêm acc</button>
+<!-- 👑 PANEL -->
+<div class="box" id="panel" style="display:none">
 
-<p>📊 Tổng acc: <span id="total">0</span></p>
+<h3>📊 Tổng acc: <span id="total">0</span></h3>
 
-<button onclick="clearAcc()">Xóa tất cả</button>
+<input type="text" id="acc" placeholder="tk|mk">
+<button class="add" onclick="addAcc()">➕ Thêm</button>
+
+<h3>📦 Import hàng loạt</h3>
+<textarea id="bulk" placeholder="tk1|mk1&#10;tk2|mk2"></textarea>
+<button class="import" onclick="importAcc()">IMPORT</button>
+
+<h3>📋 Danh sách acc</h3>
+<div id="list"></div>
+
+<button class="del" onclick="clearAll()">🗑 XÓA TẤT CẢ</button>
+<button class="logout" onclick="logout()">🚪 Đăng xuất</button>
 
 </div>
 
-</div>
 
-<script>
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove, child }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+
+
 const firebaseConfig = {
-apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.firebaseio.com",
-projectId: "tangaccfreevip-2f58c",
+  apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+  authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
+  databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "tangaccfreevip-2f58c",
 };
 
-firebase.initializeApp(firebaseConfig);
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+const accRef = ref(db,"accounts");
 
-function login(){
-if(mk.value=="123456"){
-admin.style.display="block";
-}
+
+// 🔐 PASSWORD
+const ADMIN_PASS = "123456";
+
+// 🧠 CHỐNG DÒ
+let fail = 0;
+let lock = false;
+
+
+window.login = function(){
+
+  if(lock){
+    msg.innerText="⛔ Thử lại sau 30s";
+    return;
+  }
+
+  if(pass.value === ADMIN_PASS){
+
+    loginBox.style.display="none";
+    panel.style.display="block";
+
+    localStorage.setItem("admin","ok");
+
+  }else{
+
+    fail++;
+    msg.innerText="❌ Sai mật khẩu ("+fail+")";
+
+    if(fail>=5){
+      lock=true;
+      msg.innerText="⛔ Bị khóa 30s";
+      setTimeout(()=>{
+        lock=false;
+        fail=0;
+        msg.innerText="";
+      },30000);
+    }
+  }
 }
 
-function addAcc(){
-firebase.database().ref("accounts").push(acc.value);
-acc.value="";
+
+// 🚪 AUTO LOGIN
+if(localStorage.getItem("admin")){
+  loginBox.style.display="none";
+  panel.style.display="block";
 }
 
-firebase.database().ref("accounts").on("value", snap=>{
-total.innerText = snap.numChildren();
+
+// 📊 REALTIME TOTAL + LIST
+onValue(accRef,(snap)=>{
+
+  list.innerHTML="";
+  let count=0;
+
+  snap.forEach(data=>{
+
+    count++;
+
+    const div=document.createElement("div");
+    div.className="accItem";
+
+    div.innerHTML=`
+      <span onclick="copyText('${data.val()}')">${data.val()}</span>
+      <button onclick="delAcc('${data.key}')">❌</button>
+    `;
+
+    list.appendChild(div);
+
+  });
+
+  total.innerText=count;
+
 });
 
-function clearAcc(){
-firebase.database().ref("accounts").remove();
+
+// ➕ ADD
+window.addAcc = function(){
+  if(acc.value!=""){
+    push(accRef,acc.value);
+    acc.value="";
+  }
 }
+
+
+// 📦 IMPORT
+window.importAcc = function(){
+
+  const lines = bulk.value.split("\n");
+
+  lines.forEach(acc=>{
+    if(acc.trim()!=""){
+      push(accRef,acc.trim());
+    }
+  });
+
+  bulk.value="";
+}
+
+
+// ❌ DELETE 1
+window.delAcc = function(key){
+  remove(child(accRef,key));
+}
+
+
+// 🗑 CLEAR ALL
+window.clearAll = function(){
+  if(confirm("Xóa toàn bộ acc?")){
+    remove(accRef);
+  }
+}
+
+
+// 📋 COPY
+window.copyText = function(text){
+  navigator.clipboard.writeText(text);
+  alert("Đã copy");
+}
+
+
+// 🚪 LOGOUT
+window.logout = function(){
+  localStorage.removeItem("admin");
+  location.reload();
+}
+
 </script>
 
 </body>
