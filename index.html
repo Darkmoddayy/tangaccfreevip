@@ -2,128 +2,141 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>🎁 Tặng Acc VIP</title>
+<title>🎁 TẶNG ACC VIP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{
-background:#0f0f0f;
+background:#000;
 color:#0ff;
-text-align:center;
 font-family:Arial;
+text-align:center;
 }
+
+.box{
+margin-top:40px;
+padding:20px;
+border:2px solid #0ff;
+border-radius:15px;
+box-shadow:0 0 20px #0ff;
+}
+
 button{
-padding:15px;
-background:#0ff;
-border:none;
-margin:10px;
+background:#000;
+color:#0ff;
+border:1px solid #0ff;
+padding:12px 25px;
+border-radius:10px;
 font-size:18px;
-box-shadow:0 0 15px #0ff;
 }
-#acc{margin-top:20px;font-size:20px;}
 </style>
 </head>
 
 <body>
 
-<h2>🎁 NHẬN ACC VIP FREE</h2>
+<div class="box">
+<h2>🎁 RANDOM ACC VIP</h2>
+
+<p id="status">Sẵn sàng...</p>
+
 <button onclick="getAcc()">NHẬN ACC</button>
 
-<div id="loading"></div>
-<div id="acc"></div>
+<h3 id="acc"></h3>
+
+<p>👥 Online: <span id="online">0</span></p>
+<p>📦 Acc còn: <span id="totalAcc">0</span></p>
+</div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import {
-getDatabase, ref, onValue, get, child, remove, set, update
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, push, onValue, remove, set, get }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
 authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
 databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
 projectId: "tangaccfreevip-2f58c",
-storageBucket: "tangaccfreevip-2f58c.firebasestorage.app",
+storageBucket: "tangaccfreevip-2f58c.appspot.com",
 messagingSenderId: "970018428565",
 appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = getDatabase();
 
 const device = localStorage.getItem("device") || Math.random().toString(36).substr(2);
 localStorage.setItem("device",device);
 
 const today = new Date().toLocaleDateString();
 
-//// ONLINE
-set(ref(db,"online/"+device),true);
-window.onbeforeunload = ()=> set(ref(db,"online/"+device),null);
+// 🔥 ONLINE REALTIME
+const onlineRef = ref(db,"online/"+device);
+set(onlineRef,true);
 
-//// RESET NGÀY
-if(localStorage.getItem("date")!=today){
-localStorage.setItem("date",today);
-localStorage.setItem("count",0);
-}
+onValue(ref(db,"online"),snap=>{
+document.getElementById("online").innerText = snap.size;
+});
 
-//// LINK4M
-const link4m = "https://link4m.co/st?api=69100b1afc003f0eba59c189&url=";
+// 📦 TOTAL ACC
+onValue(ref(db,"accounts"),snap=>{
+document.getElementById("totalAcc").innerText = snap.size;
+});
 
-window.getAcc = async function(){
+async function getAcc(){
 
-if(localStorage.getItem("count")>=2){
-alert("❌ Mỗi ngày chỉ nhận 2 acc");
+document.getElementById("status").innerText="⏳ Đang kiểm tra vượt link...";
+
+const historyRef = ref(db,"history/"+device+"/"+today);
+const check = await get(historyRef);
+
+if(check.exists() && check.val()>=2){
+alert("❌ Bạn đã nhận đủ 2 acc hôm nay");
 return;
 }
 
-loading.innerHTML="⏳ Đang kiểm tra vượt link...";
-setTimeout(()=>{
-
-if(!document.referrer.includes("link4m")){
-location.href = link4m + location.href;
+// 🚀 LINK4M
+if(!sessionStorage.getItem("pass")){
+location.href="https://link4m.co/st?api=69100b1afc003f0eba59c189&url=YOUR_LINK";
 return;
 }
 
-showAcc();
+// RANDOM ACC
 
-},3000);
-
-}
-
-async function showAcc(){
-
-const snapshot = await get(ref(db,"accounts"));
+const snap = await get(ref(db,"accounts"));
 
 let list=[];
-snapshot.forEach(i=>{
-list.push({key:i.key,acc:i.val().acc});
-});
+snap.forEach(i=>list.push({key:i.key,acc:i.val().acc}));
 
 if(list.length==0){
-acc.innerHTML="❌ Hết acc";
+alert("Hết acc");
 return;
 }
 
-let random = list[Math.floor(Math.random()*list.length)];
+let rand = list[Math.floor(Math.random()*list.length)];
 
-acc.innerHTML="🎉 "+random.acc;
+document.getElementById("acc").innerText = rand.acc;
 
-remove(ref(db,"accounts/"+random.key));
+remove(ref(db,"accounts/"+rand.key));
 
-//// ĐẾM
-let count = Number(localStorage.getItem("count")||0)+1;
-localStorage.setItem("count",count);
-
-//// STATS
-update(ref(db,"stats/"+today),{
-value: (await get(ref(db,"stats/"+today+"/value"))).val()+1 || 1
+// SAVE HISTORY
+push(ref(db,"users"),{
+device,
+time:Date.now(),
+date:today
 });
 
-//// TOP USER
-update(ref(db,"top/"+device),{
-value: (await get(ref(db,"top/"+device+"/value"))).val()+1 || 1
-});
+set(historyRef,(check.val()||0)+1);
 
 }
+
+// 🔥 CHECK QUAY LẠI TỪ LINK4M
+if(document.referrer.includes("link4m")){
+sessionStorage.setItem("pass",true);
+}
+
 </script>
+
 </body>
 </html>
