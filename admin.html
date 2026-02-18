@@ -1,103 +1,69 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>ADMIN PANEL</title>
-  <style>
-    body{
-      font-family: Arial;
-      background:#0f172a;
-      color:white;
-      text-align:center;
-    }
-    .box{
-      background:#1e293b;
-      padding:20px;
-      margin:20px auto;
-      width:90%;
-      max-width:500px;
-      border-radius:15px;
-    }
-    input,textarea,button{
-      width:90%;
-      padding:10px;
-      margin:5px;
-      border-radius:10px;
-      border:none;
-    }
-    button{
-      background:#22c55e;
-      color:white;
-      font-weight:bold;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+<style>
+body{background:#0f172a;color:white;text-align:center;font-family:sans-serif}
+.box{background:#1e293b;padding:20px;border-radius:15px;margin:20px}
+button{background:#22c55e;border:none;padding:12px;width:100%;border-radius:10px;color:white}
+</style>
 </head>
+
 <body>
 
-<h1>🔐 ADMIN PANEL</h1>
+<div class="box">
 
-<!-- LOGIN -->
-<div class="box" id="loginBox">
-  <h2>Đăng nhập</h2>
-  <input type="password" id="pass" placeholder="Nhập mật khẩu admin">
-  <button onclick="login()">Đăng nhập</button>
+<h2>🔐 ADMIN PANEL</h2>
+
+<input type="password" id="mk" placeholder="Mật khẩu">
+<button onclick="login()">Đăng nhập</button>
+
+<div id="admin" style="display:none">
+
+<input id="acc" placeholder="user|pass">
+<button onclick="addAcc()">Thêm acc</button>
+
+<p>📊 Tổng acc: <span id="total">0</span></p>
+
+<button onclick="clearAcc()">Xóa tất cả</button>
+
 </div>
-
-<!-- ADMIN -->
-<div class="box" id="adminBox" style="display:none">
-
-  <h2>Thêm ACC</h2>
-  <textarea id="newAcc" placeholder="user|pass"></textarea>
-  <button onclick="addAcc()">Thêm</button>
-
-  <h2>Danh sách ACC</h2>
-  <p id="count"></p>
-  <textarea id="listAcc" rows="10"></textarea>
-  <br>
-  <button onclick="save()">Lưu</button>
-  <button onclick="clearAcc()">Xóa tất cả</button>
 
 </div>
 
 <script>
+const firebaseConfig = {
+apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
+databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.firebaseio.com",
+projectId: "tangaccfreevip-2f58c",
+};
 
-const ADMIN_PASS = "123456"; // 🔑 đổi mật khẩu tại đây
+firebase.initializeApp(firebaseConfig);
 
 function login(){
-  if(document.getElementById("pass").value === ADMIN_PASS){
-    loginBox.style.display="none";
-    adminBox.style.display="block";
-    loadAcc();
-  }else{
-    alert("Sai mật khẩu!");
-  }
+if(mk.value=="123456"){
+admin.style.display="block";
 }
-
-function loadAcc(){
-  let acc = JSON.parse(localStorage.getItem("accounts") || "[]");
-  listAcc.value = acc.join("\n");
-  count.innerText = "✨ Tổng acc: " + acc.length;
-}
-
-function save(){
-  let data = listAcc.value.trim().split("\n");
-  localStorage.setItem("accounts", JSON.stringify(data));
-  loadAcc();
 }
 
 function addAcc(){
-  if(newAcc.value.trim() === "") return;
-  listAcc.value += "\n" + newAcc.value;
-  newAcc.value="";
+firebase.database().ref("accounts").push(acc.value);
+acc.value="";
 }
+
+firebase.database().ref("accounts").on("value", snap=>{
+total.innerText = snap.numChildren();
+});
 
 function clearAcc(){
-  if(confirm("Xóa hết acc?")){
-    localStorage.removeItem("accounts");
-    loadAcc();
-  }
+firebase.database().ref("accounts").remove();
 }
-
 </script>
 
 </body>
