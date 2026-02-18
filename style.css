@@ -1,0 +1,30 @@
+body{
+background:#000;
+color:#0ff;
+font-family:sans-serif;
+text-align:center;
+}
+
+.box{
+margin:40px auto;
+padding:20px;
+width:90%;
+max-width:500px;
+border:2px solid #0ff;
+box-shadow:0 0 25px #0ff;
+}
+
+button{
+padding:15px 30px;
+background:#0ff;
+border:none;
+font-weight:bold;
+cursor:pointer;
+box-shadow:0 0 20px #0ff;
+}
+
+input,textarea{
+width:90%;
+padding:10px;
+margin:5px;
+}
