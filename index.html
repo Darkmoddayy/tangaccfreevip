@@ -2,141 +2,84 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>🎁 TẶNG ACC VIP</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
+<title>Tặng Acc VIP</title>
 <style>
-body{
-background:#000;
-color:#0ff;
-font-family:Arial;
-text-align:center;
-}
-
-.box{
-margin-top:40px;
-padding:20px;
-border:2px solid #0ff;
-border-radius:15px;
-box-shadow:0 0 20px #0ff;
-}
-
-button{
-background:#000;
-color:#0ff;
-border:1px solid #0ff;
-padding:12px 25px;
-border-radius:10px;
-font-size:18px;
-}
+body{background:#06141b;color:#0ff;text-align:center;font-family:Arial}
+.box{margin-top:80px;padding:30px;border:2px solid #0ff;box-shadow:0 0 20px #0ff}
+button{padding:15px 30px;background:#00ffd5;border:none;font-weight:bold}
 </style>
 </head>
 
 <body>
 
 <div class="box">
-<h2>🎁 RANDOM ACC VIP</h2>
+<h1>🎁 TẶNG ACC FREE VIP</h1>
+<h2 id="count">0</h2>
 
-<p id="status">Sẵn sàng...</p>
+<button onclick="getAcc()">NHẬN ACC NGAY</button>
 
-<button onclick="getAcc()">NHẬN ACC</button>
-
-<h3 id="acc"></h3>
-
-<p>👥 Online: <span id="online">0</span></p>
-<p>📦 Acc còn: <span id="totalAcc">0</span></p>
+<h3 id="loading"></h3>
+<h2 id="acc"></h2>
 </div>
 
 <script type="module">
 
+import { firebaseConfig } from "./config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove, set, get }
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
-
-const firebaseConfig = {
-apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "tangaccfreevip-2f58c",
-storageBucket: "tangaccfreevip-2f58c.appspot.com",
-messagingSenderId: "970018428565",
-appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
-};
+import { getDatabase, ref, onValue, get, child, remove, set } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const app = initializeApp(firebaseConfig);
-const db = getDatabase();
+const db = getDatabase(app);
 
-const device = localStorage.getItem("device") || Math.random().toString(36).substr(2);
+const device = localStorage.getItem("device") || Math.random().toString(36);
 localStorage.setItem("device",device);
 
-const today = new Date().toLocaleDateString();
+function today(){
+return new Date().toISOString().slice(0,10);
+}
 
-// 🔥 ONLINE REALTIME
-const onlineRef = ref(db,"online/"+device);
-set(onlineRef,true);
+onValue(ref(db,"acc"),snap=>{
+document.getElementById("count").innerHTML=snap.size;
+})
 
-onValue(ref(db,"online"),snap=>{
-document.getElementById("online").innerText = snap.size;
-});
+window.getAcc = async function(){
 
-// 📦 TOTAL ACC
-onValue(ref(db,"accounts"),snap=>{
-document.getElementById("totalAcc").innerText = snap.size;
-});
+const userRef = ref(db,"users/"+device);
 
-async function getAcc(){
+const snap = await get(userRef);
 
-document.getElementById("status").innerText="⏳ Đang kiểm tra vượt link...";
+let data = snap.val();
 
-const historyRef = ref(db,"history/"+device+"/"+today);
-const check = await get(historyRef);
-
-if(check.exists() && check.val()>=2){
-alert("❌ Bạn đã nhận đủ 2 acc hôm nay");
+if(data && data.date===today() && data.count>=2){
+alert("❌ Bạn đã nhận đủ hôm nay");
 return;
 }
 
-// 🚀 LINK4M
-if(!sessionStorage.getItem("pass")){
-location.href="https://link4m.co/st?api=69100b1afc003f0eba59c189&url=YOUR_LINK";
-return;
-}
+document.getElementById("loading").innerHTML="⏳ Đang kiểm tra vượt link...";
 
-// RANDOM ACC
+setTimeout(async()=>{
 
-const snap = await get(ref(db,"accounts"));
+const accSnap = await get(child(ref(db),"acc"));
 
-let list=[];
-snap.forEach(i=>list.push({key:i.key,acc:i.val().acc}));
+let arr=[];
 
-if(list.length==0){
-alert("Hết acc");
-return;
-}
+accSnap.forEach(i=>arr.push({key:i.key,val:i.val()}));
 
-let rand = list[Math.floor(Math.random()*list.length)];
+let random = arr[Math.floor(Math.random()*arr.length)];
 
-document.getElementById("acc").innerText = rand.acc;
+document.getElementById("acc").innerHTML=random.val;
 
-remove(ref(db,"accounts/"+rand.key));
+remove(ref(db,"acc/"+random.key));
 
-// SAVE HISTORY
-push(ref(db,"users"),{
-device,
-time:Date.now(),
-date:today
+set(userRef,{
+date:today(),
+count:(data?.count||0)+1
 });
 
-set(historyRef,(check.val()||0)+1);
+},3000)
 
-}
-
-// 🔥 CHECK QUAY LẠI TỪ LINK4M
-if(document.referrer.includes("link4m")){
-sessionStorage.setItem("pass",true);
 }
 
 </script>
-
 </body>
 </html>
