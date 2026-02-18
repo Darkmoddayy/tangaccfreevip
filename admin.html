@@ -2,116 +2,178 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ADMIN</title>
+<title>ADMIN PRO MAX</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  background:#0f0f0f;
+  color:#0ff;
+  font-family:Arial;
+  text-align:center;
+}
+.box{
+  border:1px solid #0ff;
+  margin:15px;
+  padding:15px;
+  box-shadow:0 0 15px #0ff;
+}
+input,button,textarea{
+  padding:10px;
+  margin:5px;
+  width:90%;
+}
+button{
+  background:#0ff;
+  border:none;
+  cursor:pointer;
+}
+</style>
 </head>
 
 <body>
 
-<h2>Tổng acc: <span id="total">0</span></h2>
+<div id="loginBox" class="box">
+<h2>🔐 ADMIN LOGIN</h2>
+<input type="password" id="pass" placeholder="Nhập mật khẩu">
+<button onclick="login()">Đăng nhập</button>
+<p id="msg"></p>
+</div>
 
-<input id="acc" placeholder="tk|mk">
-<button onclick="addAcc()">Thêm</button>
+<div id="panel" style="display:none">
 
-<br><br>
+<h2>⚡ ADMIN DASHBOARD</h2>
 
-<textarea id="bulk" placeholder="tk1|mk1&#10;tk2|mk2"></textarea>
-<br>
+<div class="box">
+📊 Tổng acc: <b id="totalAcc">0</b><br>
+👥 Online: <b id="online">0</b>
+</div>
+
+<div class="box">
+<h3>📦 Import acc</h3>
+<textarea id="importAcc" placeholder="user|pass"></textarea>
 <button onclick="importAcc()">IMPORT</button>
+</div>
 
-<h3>Danh sách acc</h3>
-<div id="list"></div>
+<div class="box">
+<h3>📋 Danh sách acc</h3>
+<div id="listAcc"></div>
+</div>
 
-<button onclick="clearAll()">XÓA TẤT CẢ</button>
+<div class="box">
+<h3>📈 User theo ngày</h3>
+<canvas id="chart"></canvas>
+</div>
 
+<div class="box">
+<h3>🏆 Top user</h3>
+<div id="topUser"></div>
+</div>
+
+</div>
+
+<!-- FIREBASE -->
 <script type="module">
-
-import { initializeApp } 
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-
-import { 
-getDatabase, ref, push, onValue, remove 
-}
-from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
-
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import {
+getDatabase, ref, set, push, onValue, remove
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
 authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
 databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "tangaccfreevip-2f58c"
+projectId: "tangaccfreevip-2f58c",
+storageBucket: "tangaccfreevip-2f58c.firebasestorage.app",
+messagingSenderId: "970018428565",
+appId: "1:970018428565:web:3d8b15dc15b29977386d9c"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const accRef = ref(db,"accounts");
+window.login = function(){
+let lock = localStorage.getItem("lock");
+let fail = Number(localStorage.getItem("fail") || 0);
 
+if(lock && Date.now()<lock){
+msg.innerHTML="❌ Bị khoá";
+return;
+}
 
-// 📊 REALTIME
-onValue(accRef,(snapshot)=>{
+if(pass.value==="123456"){
+loginBox.style.display="none";
+panel.style.display="block";
+}
+else{
+fail++;
+localStorage.setItem("fail",fail);
+msg.innerHTML="❌ Sai mật khẩu";
 
-list.innerHTML="";
+if(fail>=5){
+localStorage.setItem("lock",Date.now()+600000);
+msg.innerHTML="🔒 Khoá 10 phút";
+}
+}
+}
 
-let count = 0;
+function importAcc(){
+let data = importAcc.value.split("\n");
+data.forEach(acc=>{
+push(ref(db,"accounts"),{acc});
+});
+}
 
-snapshot.forEach(child=>{
+onValue(ref(db,"accounts"),snap=>{
+let html="";
+let total=0;
 
-count++;
-
-const div = document.createElement("div");
-
-div.innerHTML = `
-${child.val()}
-<button onclick="delAcc('${child.key}')">X</button>
-`;
-
-list.appendChild(div);
-
+snap.forEach(i=>{
+total++;
+html+=`
+<div>
+${i.val().acc}
+<button onclick="delAcc('${i.key}')">X</button>
+</div>`;
 });
 
-total.innerText = count;
-
+listAcc.innerHTML=html;
+totalAcc.innerHTML=total;
 });
 
-
-// ➕ ADD
-window.addAcc = function(){
-
-if(acc.value!=""){
-push(accRef, acc.value);
-acc.value="";
+window.delAcc = function(id){
+remove(ref(db,"accounts/"+id));
 }
 
-}
-
-
-// 📦 IMPORT
-window.importAcc = function(){
-
-const lines = bulk.value.split("\n");
-
-lines.forEach(line=>{
-if(line.trim()!=""){
-push(accRef,line.trim());
-}
+//// USER ONLINE
+onValue(ref(db,"online"),snap=>{
+online.innerHTML = snap.size;
 });
 
-bulk.value="";
+//// THỐNG KÊ USER
+onValue(ref(db,"stats"),snap=>{
+let labels=[];
+let data=[];
 
-}
+snap.forEach(i=>{
+labels.push(i.key);
+data.push(i.val());
+});
 
+new Chart(document.getElementById("chart"),{
+type:"line",
+data:{labels,datasets:[{label:"User",data}]}
+});
+});
 
-// ❌ DELETE
-window.delAcc = function(key){
-remove(ref(db,"accounts/"+key));
-}
-
-
-// 🗑 CLEAR
-window.clearAll = function(){
-remove(accRef);
-}
+//// TOP USER
+onValue(ref(db,"top"),snap=>{
+let html="";
+snap.forEach(i=>{
+html+=`<div>${i.key} : ${i.val()}</div>`;
+});
+topUser.innerHTML=html;
+});
 
 </script>
 
