@@ -1,126 +1,78 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>ADMIN</title>
 <style>
-body{
-background:#000;
-color:#0ff;
-font-family:Arial;
-text-align:center;
-}
-
-.box{
-border:2px solid #0ff;
-padding:20px;
-margin:20px;
-box-shadow:0 0 15px #0ff;
-}
-
-input,button,textarea{
-padding:10px;
-margin:5px;
-width:80%;
-}
-
-button{
-background:#0ff;
-border:none;
-font-weight:bold;
-}
+body{background:#000;color:#0ff;text-align:center;font-family:Arial}
+.box{border:2px solid #0ff;margin:20px;padding:20px;box-shadow:0 0 15px #0ff}
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginBox" class="box">
-<h2>🔐 ADMIN LOGIN</h2>
-<input type="password" id="pass" placeholder="Nhập mật khẩu">
-<br>
-<button onclick="login()">ĐĂNG NHẬP</button>
+<h2>🔐 ADMIN</h2>
+<input type="password" id="pass">
+<br><br>
+<button onclick="login()">LOGIN</button>
 <p id="msg"></p>
 </div>
 
-<!-- DASHBOARD -->
 <div id="dashboard" class="box" style="display:none">
-<h2>⚡ ADMIN DASHBOARD</h2>
 
-<p>📦 Import acc</p>
+<h3>📊 Tổng acc: <span id="total"></span></h3>
+
 <textarea id="importBox" placeholder="tk|mk"></textarea>
-<br>
+<br><br>
 <button onclick="importAcc()">IMPORT</button>
 
-<h3>📋 Danh sách acc</h3>
 <div id="list"></div>
 
-<br>
-<button onclick="logout()">ĐĂNG XUẤT</button>
 </div>
 
 <script type="module">
 
+import { firebaseConfig } from "./config.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
-
-const firebaseConfig = {
-apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "tangaccfreevip-2f58c"
-};
 
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 window.login = function(){
-const pass = document.getElementById("pass").value;
-
-if(pass==="123456"){
-document.getElementById("loginBox").style.display="none";
-document.getElementById("dashboard").style.display="block";
-loadAcc();
+if(document.getElementById("pass").value==="123456"){
+loginBox.style.display="none";
+dashboard.style.display="block";
+load();
 }else{
-document.getElementById("msg").innerHTML="❌ Sai mật khẩu";
+msg.innerHTML="Sai mật khẩu";
 }
 }
 
-window.logout = function(){
-location.reload();
-}
-
-function loadAcc(){
-const accRef = ref(db,"acc");
-
-onValue(accRef,snap=>{
+function load(){
+onValue(ref(db,"acc"),snap=>{
+total.innerHTML=snap.size;
 let html="";
-snap.forEach(data=>{
-html+=`
-<p>
-${data.val()}
-<button onclick="delAcc('${data.key}')">X</button>
-</p>
-`;
+snap.forEach(i=>{
+html+=`<p>${i.val()} <button onclick="delAcc('${i.key}')">X</button></p>`
 })
-document.getElementById("list").innerHTML=html;
+list.innerHTML=html;
 })
 }
 
-window.importAcc = function(){
-const lines = document.getElementById("importBox").value.split("\n");
-
+window.importAcc=function(){
+let lines=importBox.value.split("\n");
 lines.forEach(acc=>{
 if(acc.trim()!=""){
 push(ref(db,"acc"),acc.trim())
 }
 })
-
-alert("✅ Đã import");
+alert("Đã thêm");
 }
 
-window.delAcc = function(id){
-remove(ref(db,"acc/"+id))
+window.delAcc=function(id){
+remove(ref(db,"acc/"+id));
 }
 
 </script>
