@@ -1,83 +1,86 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Tặng Acc Free VIP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tặng Acc Free</title>
 
-  <style>
-    body{
-      font-family: Arial;
-      background: linear-gradient(45deg,#ff416c,#ff4b2b);
-      color:white;
-      text-align:center;
-      padding:20px;
-    }
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-    .box{
-      background:white;
-      color:black;
-      padding:20px;
-      border-radius:15px;
-      max-width:400px;
-      margin:auto;
-      box-shadow:0 0 15px rgba(0,0,0,0.3);
-    }
-
-    button{
-      background:#ff4b2b;
-      color:white;
-      border:none;
-      padding:15px;
-      width:100%;
-      font-size:18px;
-      border-radius:10px;
-      margin-top:15px;
-    }
-
-    button:hover{
-      background:#ff416c;
-    }
-  </style>
+<style>
+body{background:#0f172a;color:white;font-family:sans-serif;text-align:center}
+.box{background:#1e293b;padding:20px;border-radius:15px;margin:20px}
+button{background:#22c55e;border:none;padding:12px;width:100%;border-radius:10px;color:white;font-size:16px}
+</style>
 </head>
 
 <body>
 
-  <h1>🎁 TẶNG ACC FREE VIP 🎁</h1>
-  <p>👥 Đang nhận: <span id="online"></span></p>
+<div class="box">
+<h2>🎁 NHẬN ACC FREE</h2>
 
-  <div class="box">
+<p>📊 Tổng acc: <span id="total">0</span></p>
 
-    <h2>Nhận Acc Ngẫu Nhiên</h2>
+<button onclick="getLink()">NHẬN ACC</button>
 
-    <button onclick="nhanAcc()">NHẬN ACC</button>
-
-    <p id="ketqua"></p>
-
-  </div>
+<h3 id="acc"></h3>
+</div>
 
 <script>
-  // fake người online
-  setInterval(()=>{
-    document.getElementById("online").innerText =
-      Math.floor(Math.random()*100)+50;
-  },2000);
+const firebaseConfig = {
+apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
+databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.firebaseio.com",
+projectId: "tangaccfreevip-2f58c",
+};
 
+firebase.initializeApp(firebaseConfig);
 
-  function nhanAcc(){
+firebase.database().ref("accounts").on("value", snap=>{
+total.innerText = snap.numChildren();
+});
 
-    let last = localStorage.getItem("cooldown");
+function getLink(){
 
-    if(last && Date.now() - last < 1800000){
-      alert("⏱ Bạn đã nhận rồi! Quay lại sau 30 phút");
-      return;
-    }
+if(localStorage.getItem("deviceID")){
+alert("Bạn đã nhận rồi!");
+return;
+}
 
-    localStorage.setItem("cooldown",Date.now());
+localStorage.setItem("verify","ok");
+location.href="LINK4M_CUA_BAN";
+}
 
-    // 👉 link rút gọn của bạn
-    window.location.href = "https://link4m.co/st?api=69100b1afc003f0eba59c189&url=acc1.hmt";
-  }
+window.onload = ()=>{
+
+if(localStorage.getItem("verify")=="ok"){
+
+firebase.database().ref("accounts").once("value", snap=>{
+
+if(snap.exists()){
+
+let key = Object.keys(snap.val())[0];
+let acc = snap.val()[key];
+
+accBox.innerText = acc;
+
+firebase.database().ref("accounts/"+key).remove();
+
+localStorage.setItem("deviceID","done");
+
+}else{
+accBox.innerText="❌ Hết acc rồi";
+}
+
+localStorage.removeItem("verify");
+
+});
+
+}
+
+}
+
 </script>
 
 </body>
