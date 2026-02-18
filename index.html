@@ -3,22 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <title>DARKMODDAYY MAX LEVEL</title>
-<link rel="stylesheet" href="style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body{
+  background:#000;
+  color:#00ffff;
+  font-family:Arial;
+  text-align:center;
+}
+.box{
+  margin:40px auto;
+  padding:20px;
+  width:90%;
+  max-width:500px;
+  border:2px solid #00ffff;
+  box-shadow:0 0 25px #00ffff;
+}
+button{
+  padding:15px 30px;
+  background:#00ffff;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+  box-shadow:0 0 20px #00ffff;
+}
+input,textarea{
+  width:90%;
+  padding:10px;
+  margin:5px;
+}
+</style>
 </head>
 
 <body>
 
+<!-- USER PANEL -->
 <div id="userBox" class="box">
 <h1>🎁 NHẬN ACC VIP</h1>
-<h2> 99% có tỉ lệ ra acc lv1500-lvmax
-<h2> 1% có tỉ lệ ra dragon
-  
-<h2 id="totalAcc"></h2>
-<button onclick="nhanAcc()">NH поясN ACC</button>
+<h2 id="totalAcc">Đang tải...</h2>
+<button onclick="nhanAcc()">NHẬN ACC</button>
 <h2 id="status"></h2>
 </div>
 
+<!-- ADMIN PANEL -->
 <div id="adminBox" style="display:none">
 
 <div class="box">
@@ -32,27 +59,17 @@
 
 <div class="box">
 <h2>📦 Thêm acc</h2>
-<input id="acc">
+<input id="accInput">
 <button onclick="addAcc()">Thêm</button>
 
-<textarea id="bulk" placeholder="Import acc mỗi dòng"></textarea>
+<textarea id="bulk" placeholder="Import mỗi dòng 1 acc"></textarea>
 <button onclick="importAcc()">IMPORT</button>
 </div>
 
 <div class="box">
-<h2>📋 ACC LIST</h2>
+<h2>📋 Danh sách acc</h2>
 <ul id="list"></ul>
 <h3>Tổng: <span id="total"></span></h3>
-</div>
-
-<div class="box">
-<h2>🏆 TOP USER</h2>
-<div id="topUser"></div>
-</div>
-
-<div class="box">
-<h2>📊 USER THEO NGÀY</h2>
-<canvas id="chart"></canvas>
 </div>
 
 <div class="box">
@@ -63,173 +80,172 @@
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, get, set, remove, push, onValue } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import { getDatabase, ref, get, set, remove, push, onValue, onDisconnect }
+from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
 const app = initializeApp({
-apiKey:"AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app"
+  apiKey:"AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+  databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app"
 });
+const db = getDatabase(app);
 
-const db=getDatabase(app);
-
-// ADMIN URL SECRET
-const url=new URLSearchParams(window.location.search);
-if(url.get("darkmod")=="vipadmin"){
-adminBox.style.display="block";
-userBox.style.display="none";
+/* ======================
+   ADMIN SECRET URL
+====================== */
+const params = new URLSearchParams(window.location.search);
+if(params.get("darkmod")==="vipadmin"){
+  document.getElementById("adminBox").style.display="block";
+  document.getElementById("userBox").style.display="none";
 }
 
-// DEVICE ID
-const device=localStorage.getItem("device")||Math.random();
+/* ======================
+   DEVICE ID
+====================== */
+const device = localStorage.getItem("device") || crypto.randomUUID();
 localStorage.setItem("device",device);
 
-// ONLINE TRACK
-set(ref(db,"online/"+device),true);
+/* ======================
+   ONLINE TRACK
+====================== */
+const onlineRef = ref(db,"online/"+device);
+set(onlineRef,true);
+onDisconnect(onlineRef).remove();
 
-// TOTAL ACC REALTIME
+/* ======================
+   TOTAL ACC REALTIME
+====================== */
 onValue(ref(db,"accounts"),snap=>{
-totalAcc.innerHTML="📦 Acc còn: "+snap.size;
+  document.getElementById("totalAcc").innerHTML =
+  "📦 Acc còn: " + (snap.size || 0);
 });
 
-// NHẬN ACC
-window.nhanAcc=async()=>{
+/* ======================
+   NHẬN ACC (FIX LINK4M)
+====================== */
+window.nhanAcc = async function(){
 
-status.innerHTML="⏳ Đang kiểm tra vượt link...";
+  const status = document.getElementById("status");
+  status.innerHTML="⏳ Đang chuyển hướng Link4m...";
 
-if(!url.get("done")){
-location.href="https://link4m.co/st?api=69100b1afc003f0eba59c189&url="+encodeURIComponent(location.href+"?done=1");
-return;
-}
+  const baseUrl = window.location.origin + window.location.pathname;
 
-let today=new Date().toISOString().slice(0,10);
+  if(!window.location.search.includes("done=1")){
+    const link4m =
+    "https://link4m.co/st?api=69100b1afc003f0eba59c189&url=" +
+    encodeURIComponent(baseUrl + "?done=1");
 
-let userRef=ref(db,"users/"+device);
-let snap=await get(userRef);
+    localStorage.setItem("waiting","1");
+    window.location.href = link4m;
+    return;
+  }
 
-let data=snap.val()||{count:0,date:today};
+  if(localStorage.getItem("waiting")!=="1") return;
+  localStorage.removeItem("waiting");
 
-if(data.date!==today){
-data.count=0;
-data.date=today;
-}
+  /* ===== CHECK 2 ACC / DAY ===== */
+  const today = new Date().toISOString().slice(0,10);
+  const userRef = ref(db,"users/"+device);
+  const snap = await get(userRef);
+  let data = snap.val() || {count:0,date:today};
 
-if(data.count>=2){
-status.innerHTML="❌ Đã nhận 2 acc hôm nay";
-return;
-}
+  if(data.date!==today){
+    data.count=0;
+    data.date=today;
+  }
 
-let accSnap=await get(ref(db,"accounts"));
+  if(data.count>=2){
+    status.innerHTML="❌ Hôm nay đã nhận 2 acc";
+    return;
+  }
 
-if(!accSnap.exists()){
-status.innerHTML="🔥 HẾT ACC 🔥";
-return;
-}
+  /* ===== RANDOM ACC ===== */
+  const accSnap = await get(ref(db,"accounts"));
 
-let list=accSnap.val();
-let keys=Object.keys(list);
-let rand=keys[Math.floor(Math.random()*keys.length)];
-let acc=list[rand];
+  if(!accSnap.exists()){
+    status.innerHTML="🔥 HẾT ACC 🔥";
+    return;
+  }
 
-await remove(ref(db,"accounts/"+rand));
+  const list = accSnap.val();
+  const keys = Object.keys(list);
+  const rand = keys[Math.floor(Math.random()*keys.length)];
+  const acc = list[rand];
 
-data.count++;
-await set(userRef,data);
+  await remove(ref(db,"accounts/"+rand));
 
-// LOG HISTORY
-push(ref(db,"logs"),{
-device:device,
-acc:acc,
-time:new Date().toLocaleString()
-});
+  data.count++;
+  await set(userRef,data);
 
-status.innerHTML="✅ "+acc;
+  status.innerHTML="✅ "+acc;
+
+  /* ===== TELEGRAM NOTIFY ===== */
+  fetch(`https://api.telegram.org/botYOUR_TOKEN/sendMessage?chat_id=YOUR_CHAT_ID&parse_mode=html&text=
+<b>🎁 DARKMODDAYY</b>%0A
+👤 Device: <code>${device}</code>%0A
+🔑 Acc: <code>${acc}</code>%0A
+⏰ ${new Date().toLocaleString()}
+`);
+
 };
 
-// LOGIN ADMIN
+/* ======================
+   ADMIN LOGIN
+====================== */
 let fail=0;
-
-window.login=()=>{
-if(pass.value==="123456"){
-panel.style.display="block";
-loadAdmin();
-}else{
-fail++;
-msg.innerHTML="❌ Sai mật khẩu";
-if(fail>=5){
-msg.innerHTML="🔒 Khóa 5 phút";
-setTimeout(()=>fail=0,300000);
-}
-}
+window.login=function(){
+  if(document.getElementById("pass").value==="123456"){
+    document.getElementById("panel").style.display="block";
+    loadAdmin();
+  }else{
+    fail++;
+    document.getElementById("msg").innerHTML="❌ Sai mật khẩu";
+    if(fail>=5){
+      document.getElementById("msg").innerHTML="🔒 Khóa 5 phút";
+      setTimeout(()=>fail=0,300000);
+    }
+  }
 };
 
-// ADMIN LOAD
+/* ======================
+   ADMIN LOAD
+====================== */
 function loadAdmin(){
 
-onValue(ref(db,"accounts"),snap=>{
-let html="";
-let total=0;
+  onValue(ref(db,"accounts"),snap=>{
+    let html="";
+    let total=0;
+    snap.forEach(i=>{
+      total++;
+      html+=`<li>${i.val()} 
+      <button onclick="delAcc('${i.key}')">X</button></li>`;
+    });
+    document.getElementById("list").innerHTML=html;
+    document.getElementById("total").innerHTML=total;
+  });
 
-snap.forEach(i=>{
-total++;
-html+=`<li>${i.val()} <button onclick="delAcc('${i.key}')">X</button></li>`;
-});
-
-list.innerHTML=html;
-document.getElementById("total").innerHTML=total;
-});
-
-// ONLINE
-onValue(ref(db,"online"),snap=>{
-online.innerHTML=snap.size;
-});
-
-// TOP USER
-onValue(ref(db,"users"),snap=>{
-let arr=[];
-snap.forEach(i=>arr.push(i.val().count||0));
-arr.sort((a,b)=>b-a);
-topUser.innerHTML=arr.slice(0,5).join("<br>");
-});
-
-// CHART
-onValue(ref(db,"logs"),snap=>{
-let map={};
-
-snap.forEach(i=>{
-let d=i.val().time.split(",")[0];
-map[d]=(map[d]||0)+1;
-});
-
-new Chart(chart,{
-type:"line",
-data:{
-labels:Object.keys(map),
-datasets:[{label:"Lượt nhận",data:Object.values(map)}]
-}
-});
-});
-
+  onValue(ref(db,"online"),snap=>{
+    document.getElementById("online").innerHTML=snap.size||0;
+  });
 }
 
-// ADD ACC
-window.addAcc=()=>{
-push(ref(db,"accounts"),acc.value);
-acc.value="";
+window.addAcc=function(){
+  const val=document.getElementById("accInput").value;
+  if(val.trim()!==""){
+    push(ref(db,"accounts"),val);
+    document.getElementById("accInput").value="";
+  }
 };
 
-// IMPORT
-window.importAcc=()=>{
-bulk.value.split("\n").forEach(a=>{
-if(a.trim()!="") push(ref(db,"accounts"),a);
-});
-bulk.value="";
+window.importAcc=function(){
+  document.getElementById("bulk").value.split("\n").forEach(a=>{
+    if(a.trim()!=="") push(ref(db,"accounts"),a);
+  });
+  document.getElementById("bulk").value="";
 };
 
-// DELETE
-window.delAcc=(id)=>{
-remove(ref(db,"accounts/"+id));
+window.delAcc=function(id){
+  remove(ref(db,"accounts/"+id));
 };
 
 </script>
