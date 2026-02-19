@@ -2,109 +2,127 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Shadow Admin</title>
-
+<title>ADMIN</title>
 <style>
 body{
 background:#000;
 color:#0ff;
 font-family:Arial;
 text-align:center;
-display:none;
 }
 
-input,button{
+.box{
+border:2px solid #0ff;
+padding:20px;
+margin:20px;
+box-shadow:0 0 15px #0ff;
+}
+
+input,button,textarea{
 padding:10px;
 margin:5px;
-border:none;
-border-radius:10px;
+width:80%;
 }
 
 button{
 background:#0ff;
+border:none;
 font-weight:bold;
-cursor:pointer;
-}
-
-.card{
-background:#111;
-padding:15px;
-margin:10px;
-border-radius:15px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>👑 GOD MODE</h1>
-
-<div class="card">
-<h3>➕ Thêm ACC</h3>
-<input id="newAcc" placeholder="user|pass">
-<button onclick="addAcc()">ADD</button>
+<!-- LOGIN -->
+<div id="loginBox" class="box">
+<h2>🔐 ADMIN LOGIN</h2>
+<input type="password" id="pass" placeholder="Nhập mật khẩu">
+<br>
+<button onclick="login()">ĐĂNG NHẬP</button>
+<p id="msg"></p>
 </div>
 
-<div class="card">
-<h3>📦 Danh sách ACC</h3>
-<div id="listAcc"></div>
+<!-- DASHBOARD -->
+<div id="dashboard" class="box" style="display:none">
+<h2>⚡ ADMIN DASHBOARD</h2>
+
+<p>📦 Import acc</p>
+<textarea id="importBox" placeholder="tk|mk"></textarea>
+<br>
+<button onclick="importAcc()">IMPORT</button>
+
+<h3>📋 Danh sách acc</h3>
+<div id="list"></div>
+
+<br>
+<button onclick="logout()">ĐĂNG XUẤT</button>
 </div>
 
-<div class="card">
-<h3>📜 Lịch sử đã phát</h3>
-<div id="history"></div>
-</div>
+<script type="module">
 
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-<script>
 const firebaseConfig = {
-apiKey: "API_KEY",
-authDomain: "PROJECT.firebaseapp.com",
-databaseURL: "https://PROJECT-default-rtdb.firebaseio.com",
-projectId: "PROJECT",
+apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
+databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "tangaccfreevip-2f58c"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
-// 🕶️ KEY SHADOW
-const ADMIN_KEY = "darkmoddayy-shadow";
+window.login = function(){
+const pass = document.getElementById("pass").value;
 
-// check key
-if(location.hash.replace("#","") === ADMIN_KEY){
-document.body.style.display="block";
+if(pass==="123456"){
+document.getElementById("loginBox").style.display="none";
+document.getElementById("dashboard").style.display="block";
+loadAcc();
+}else{
+document.getElementById("msg").innerHTML="❌ Sai mật khẩu";
+}
 }
 
-// thêm acc
-function addAcc(){
-let acc = document.getElementById("newAcc").value;
-let id = Date.now();
-
-db.ref("accounts/"+id).set({
-data:acc
-});
+window.logout = function(){
+location.reload();
 }
 
-// load acc
-db.ref("accounts").on("value",snap=>{
-let html="";
-snap.forEach(s=>{
-html+=`<p>${s.val().data}</p>`;
-});
-document.getElementById("listAcc").innerHTML=html;
-});
+function loadAcc(){
+const accRef = ref(db,"acc");
 
-// load history
-db.ref("history").on("value",snap=>{
+onValue(accRef,snap=>{
 let html="";
-snap.forEach(s=>{
-html+=`<p>✔ ${s.val().acc}</p>`;
-});
-document.getElementById("history").innerHTML=html;
-});
+snap.forEach(data=>{
+html+=`
+<p>
+${data.val()}
+<button onclick="delAcc('${data.key}')">X</button>
+</p>
+`;
+})
+document.getElementById("list").innerHTML=html;
+})
+}
+
+window.importAcc = function(){
+const lines = document.getElementById("importBox").value.split("\n");
+
+lines.forEach(acc=>{
+if(acc.trim()!=""){
+push(ref(db,"acc"),acc.trim())
+}
+})
+
+alert("✅ Đã import");
+}
+
+window.delAcc = function(id){
+remove(ref(db,"acc/"+id))
+}
+
 </script>
-
 </body>
 </html>
