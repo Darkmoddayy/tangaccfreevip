@@ -2,203 +2,181 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>DARKMODDAYY VIP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NHẬN ACC VIP</title>
 
 <style>
-body{
-  background:#000;
-  color:#0ff;
-  font-family:sans-serif;
-  text-align:center;
-}
-
-button{
-  padding:15px 25px;
-  font-size:18px;
-  border:none;
-  border-radius:12px;
-  background:#0ff;
-  color:#000;
-  box-shadow:0 0 15px #0ff;
-}
-
-.locked{
-  filter:blur(3px);
-  pointer-events:none;
-  opacity:.6;
-}
-
-.shake{
-  animation:shake .4s infinite;
-}
-
-@keyframes shake{
-0%{transform:translateX(0)}
-25%{transform:translateX(-5px)}
-50%{transform:translateX(5px)}
-75%{transform:translateX(-5px)}
-100%{transform:translateX(0)}
-}
-
-.popup{
-position:fixed;
-top:50%;
-left:50%;
-transform:translate(-50%,-50%) scale(0);
-background:#000;
+body{background:#000;color:#0ff;font-family:Arial;text-align:center}
+.box{
+margin:30px auto;
+padding:20px;
+width:90%;
+max-width:420px;
 border:2px solid #0ff;
-box-shadow:0 0 25px #0ff;
-padding:25px;
 border-radius:15px;
-font-size:22px;
-transition:.3s;
+box-shadow:0 0 25px #0ff;
 }
-
-.popup.show{
-transform:translate(-50%,-50%) scale(1);
-}
-
-.progress{
-width:80%;
-height:20px;
-background:#111;
-margin:15px auto;
+button{
+padding:12px 25px;
+border:none;
 border-radius:10px;
-overflow:hidden;
-}
-
-.bar{
-height:100%;
 background:#0ff;
-width:0%;
+font-weight:bold;
 }
+.lock{filter:blur(2px);background:gray}
+.progress{height:10px;background:#111;border-radius:10px;overflow:hidden}
+.bar{height:100%;background:#0ff;width:0%}
+.acc{background:#111;margin:5px;padding:10px;border-radius:10px}
 </style>
 </head>
 
 <body>
 
-<h2>🎁 NHẬN ACC VIP NGẪU NHIÊN</h2>
+<div class="box">
+
+<h2>🎁 NHẬN ACC VIP</h2>
 
 <div>📦 Acc còn: <span id="total">0</span></div>
+<div>👥 Online: <span id="online">0</span></div>
 
-<div class="progress">
-  <div class="bar" id="bar"></div>
-</div>
+<div class="progress"><div class="bar" id="bar"></div></div>
 
-<button id="nhanacc">NHẬN ACC</button>
+<button id="btn" onclick="nhanAcc()">NHẬN ACC</button>
 
-<h3>📜 Lịch sử đã nhận</h3>
-<div id="history"></div>
+<div id="loading"></div>
+<div id="historyBox"></div>
+<div id="top"></div>
 
-<div id="popup" class="popup">
-🚫 HẾT ACC 🚫<br>Quay lại sau
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, onValue, get, remove, set } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import {
+getDatabase, ref, onValue, push, remove, set, onDisconnect
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-const firebaseConfig = {
-apiKey:"AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain:"tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId:"tangaccfreevip-2f58c"
-};
+const app = initializeApp({
+databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
 
-const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const accRef = ref(db,"acc");
+const accRef = ref(db,"accounts");
+const historyRef = ref(db,"history");
+const onlineRef = ref(db,"online");
 
-const device = localStorage.getItem("device") || Math.random().toString(36).slice(2);
+const device = localStorage.getItem("device") || Date.now();
 localStorage.setItem("device",device);
 
+let count = localStorage.getItem("count") || 0;
+
+// reset 0h
 const today = new Date().toLocaleDateString();
-
-function loadProgress(){
-const data = JSON.parse(localStorage.getItem("nhan")||"{}");
-
-if(data.date!==today){
-localStorage.setItem("nhan",JSON.stringify({date:today,count:0,history:[]}));
+if(localStorage.getItem("date") != today){
+localStorage.setItem("date",today);
+localStorage.setItem("count",0);
+count = 0;
 }
 
-const count = JSON.parse(localStorage.getItem("nhan")).count;
+updateBar();
 
-document.getElementById("bar").style.width = (count/2*100)+"%";
+// online realtime
+set(ref(db,"online/"+device),true);
+onDisconnect(ref(db,"online/"+device)).remove();
+
+onValue(onlineRef,snap=>{
+document.getElementById("online").innerText = snap.size;
+});
+
+// load acc
+onValue(accRef,snap=>{
+document.getElementById("total").innerText = snap.size;
+snap.size == 0 ? lockBtn() : unlockBtn();
+});
+
+function updateBar(){
+document.getElementById("bar").style.width = (count/2)*100+"%";
 }
 
-loadProgress();
+window.nhanAcc = function(){
+
+if(count>=2){
+boom();
+alert("Bạn đã nhận tối đa 2 acc/ngày");
+return;
+}
+
+document.getElementById("loading").innerHTML="⏳ Đang kiểm tra vượt link...";
+
+setTimeout(()=>{
 
 onValue(accRef,snap=>{
 
-const total = snap.size || 0;
-document.getElementById("total").innerText = total;
+const arr=[];
+snap.forEach(i=>arr.push({key:i.key,text:i.val().text}));
 
-const btn = document.getElementById("nhanacc");
+if(arr.length==0) return;
 
-if(total<=0){
-btn.disabled=true;
-btn.classList.add("locked","shake");
-document.getElementById("popup").classList.add("show");
-}else{
-btn.disabled=false;
-btn.classList.remove("locked","shake");
-document.getElementById("popup").classList.remove("show");
-}
+const rand = arr[Math.floor(Math.random()*arr.length)];
 
+push(historyRef,{
+text:rand.text,
+device:device,
+time:Date.now()
 });
 
-document.getElementById("nhanacc").onclick = async()=>{
+remove(ref(db,"accounts/"+rand.key));
 
-const data = JSON.parse(localStorage.getItem("nhan"));
+count++;
+localStorage.setItem("count",count);
+updateBar();
 
-if(data.count>=2){
-alert("Bạn đã nhận tối đa 2 acc hôm nay");
-return;
+document.getElementById("loading").innerHTML="✅ "+rand.text;
+
+loadHistory();
+loadTop();
+
+},{onlyOnce:true});
+
+},2000);
 }
 
-const snap = await get(accRef);
-
-if(!snap.exists()){
-alert("Hết acc");
-return;
+// history
+function loadHistory(){
+onValue(historyRef,snap=>{
+let html="<h4>📜 Acc đã nhận</h4>";
+snap.forEach(i=>{
+if(i.val().device==device){
+html+=`<div class="acc">${i.val().text}</div>`;
 }
+});
+historyBox.innerHTML=html;
+});
+}
+loadHistory();
 
-const list = [];
+// TOP USER
+function loadTop(){
+onValue(historyRef,snap=>{
+const data={};
+snap.forEach(i=>{
+const d=i.val().device;
+data[d]=(data[d]||0)+1;
+});
+let html="<h4>🏆 TOP USER</h4>";
+Object.values(data).sort((a,b)=>b-a).slice(0,3)
+.forEach(v=>html+=`<div class="acc">${v} acc</div>`);
+top.innerHTML=html;
+});
+}
+loadTop();
 
-snap.forEach(s=>list.push({key:s.key,...s.val()}));
+function lockBtn(){btn.classList.add("lock");btn.disabled=true;}
+function unlockBtn(){btn.classList.remove("lock");btn.disabled=false;}
 
-const random = list[Math.floor(Math.random()*list.length)];
-
-window.location.href="https://link4m.co/st?api=69100b1afc003f0eba59c189&url="+location.href+"?nhan="+random.key;
-
-};
-
-const url = new URL(location.href);
-
-if(url.searchParams.get("nhan")){
-
-const key = url.searchParams.get("nhan");
-
-const data = JSON.parse(localStorage.getItem("nhan"));
-
-data.count++;
-data.history.push(key);
-
-localStorage.setItem("nhan",JSON.stringify(data));
-
-loadProgress();
-
-const accSnap = await get(ref(db,"acc/"+key));
-
-alert("ACC: "+accSnap.val().user+" | "+accSnap.val().pass);
-
-remove(ref(db,"acc/"+key));
-
-document.getElementById("history").innerHTML=data.history.join("<br>");
-
+function boom(){
+document.body.style.background="red";
+setTimeout(()=>document.body.style.background="#000",300);
 }
 
 </script>
