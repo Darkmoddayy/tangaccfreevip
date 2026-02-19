@@ -2,172 +2,109 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ADMIN DARKMODDAYY</title>
+<title>Shadow Admin</title>
 
 <style>
-body{background:#000;color:#0ff;font-family:sans-serif;text-align:center}
-.box{border:1px solid #0ff;padding:15px;margin:15px;border-radius:12px;box-shadow:0 0 15px #0ff}
-input,textarea{width:90%;padding:10px;margin:5px;border-radius:8px;border:none}
-button{padding:10px 20px;margin:5px;border:none;border-radius:10px;background:#0ff;color:#000;font-weight:bold}
+body{
+background:#000;
+color:#0ff;
+font-family:Arial;
+text-align:center;
+display:none;
+}
+
+input,button{
+padding:10px;
+margin:5px;
+border:none;
+border-radius:10px;
+}
+
+button{
+background:#0ff;
+font-weight:bold;
+cursor:pointer;
+}
+
+.card{
+background:#111;
+padding:15px;
+margin:10px;
+border-radius:15px;
+}
 </style>
 </head>
 
 <body>
 
-<div id="loginBox" class="box">
-<h2>🔐 ADMIN LOGIN</h2>
-<input type="password" id="pass" placeholder="Mật khẩu">
-<button onclick="login()">Đăng nhập</button>
-<div id="msg"></div>
+<h1>👑 GOD MODE</h1>
+
+<div class="card">
+<h3>➕ Thêm ACC</h3>
+<input id="newAcc" placeholder="user|pass">
+<button onclick="addAcc()">ADD</button>
 </div>
 
-<div id="panel" style="display:none">
-
-<h2>⚡ DARKMODDAYY CONTROL</h2>
-
-<div class="box">
-<h3>📊 Tổng acc: <span id="total">0</span></h3>
-<h3>👥 Online: <span id="online">0</span></h3>
+<div class="card">
+<h3>📦 Danh sách ACC</h3>
+<div id="listAcc"></div>
 </div>
 
-<div class="box">
-<h3>➕ Thêm acc</h3>
-<input id="user" placeholder="User">
-<input id="passacc" placeholder="Pass">
-<button onclick="addAcc()">Thêm</button>
+<div class="card">
+<h3>📜 Lịch sử đã phát</h3>
+<div id="history"></div>
 </div>
 
-<div class="box">
-<h3>📂 Import acc</h3>
-<textarea id="import" rows="6" placeholder="user|pass"></textarea>
-<button onclick="importAcc()">Import</button>
-</div>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
-<div class="box">
-<h3>📦 Danh sách acc</h3>
-<div id="list"></div>
-</div>
-
-<div class="box">
-<h3>🏆 Top user</h3>
-<div id="top"></div>
-</div>
-
-<div class="box">
-<h3>📈 User theo ngày</h3>
-<div id="day"></div>
-</div>
-
-</div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
-
+<script>
 const firebaseConfig = {
-apiKey:"AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain:"tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId:"tangaccfreevip-2f58c"
+apiKey: "API_KEY",
+authDomain: "PROJECT.firebaseapp.com",
+databaseURL: "https://PROJECT-default-rtdb.firebaseio.com",
+projectId: "PROJECT",
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-const accRef = ref(db,"acc");
-const userRef = ref(db,"users");
-const onlineRef = ref(db,"online");
+// 🕶️ KEY SHADOW
+const ADMIN_KEY = "darkmoddayy-shadow";
 
-let fail = 0;
-
-window.login = function(){
-
-if(localStorage.getItem("lockTime") > Date.now()){
-msg.innerHTML="⛔ Bị khóa, thử lại sau";
-return;
+// check key
+if(location.hash.replace("#","") === ADMIN_KEY){
+document.body.style.display="block";
 }
 
-if(pass.value==="123456"){
-loginBox.style.display="none";
-panel.style.display="block";
-}else{
-fail++;
-msg.innerHTML="Sai mật khẩu";
-if(fail>=5){
-localStorage.setItem("lockTime",Date.now()+300000);
-msg.innerHTML="⛔ Sai 5 lần, khóa 5 phút";
-}
-}
-}
+// thêm acc
+function addAcc(){
+let acc = document.getElementById("newAcc").value;
+let id = Date.now();
 
-window.addAcc = function(){
-push(accRef,{user:user.value,pass:passacc.value});
-}
-
-window.importAcc = function(){
-
-const lines = document.getElementById("import").value.split("\n");
-
-lines.forEach(line=>{
-const [u,p] = line.split("|");
-if(u && p) push(accRef,{user:u,pass:p});
+db.ref("accounts/"+id).set({
+data:acc
 });
-
 }
 
-onValue(accRef,snap=>{
-total.innerText = snap.size || 0;
-
-list.innerHTML="";
+// load acc
+db.ref("accounts").on("value",snap=>{
+let html="";
 snap.forEach(s=>{
-list.innerHTML+=`
-<div>
-${s.val().user}
-<button onclick="del('${s.key}')">❌</button>
-</div>`;
+html+=`<p>${s.val().data}</p>`;
 });
+document.getElementById("listAcc").innerHTML=html;
 });
 
-window.del = function(key){
-remove(ref(db,"acc/"+key));
-}
-
-onValue(onlineRef,snap=>{
-online.innerText = snap.size || 0;
-});
-
-onValue(userRef,snap=>{
-
-let topHTML="";
-let dayHTML="";
-let topData={};
-let dayData={};
-
+// load history
+db.ref("history").on("value",snap=>{
+let html="";
 snap.forEach(s=>{
-
-const d = s.val();
-
-topData[d.device]=(topData[d.device]||0)+1;
-
-dayData[d.date]=(dayData[d.date]||0)+1;
-
+html+=`<p>✔ ${s.val().acc}</p>`;
 });
-
-for(let i in topData){
-topHTML+=`👤 ${i} : ${topData[i]}<br>`;
-}
-
-for(let i in dayData){
-dayHTML+=`📅 ${i} : ${dayData[i]}<br>`;
-}
-
-top.innerHTML=topHTML;
-day.innerHTML=dayHTML;
-
+document.getElementById("history").innerHTML=html;
 });
-
 </script>
+
 </body>
 </html>
