@@ -2,32 +2,42 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>ADMIN</title>
+<title>ADMIN DARKMODDAYY</title>
+
 <style>
 body{
-background:#000;
-color:#0ff;
-font-family:Arial;
-text-align:center;
+  background:#000;
+  color:#00ffff;
+  font-family:Arial;
+  text-align:center;
 }
 
 .box{
-border:2px solid #0ff;
-padding:20px;
-margin:20px;
-box-shadow:0 0 15px #0ff;
-}
-
-input,button,textarea{
-padding:10px;
-margin:5px;
-width:80%;
+  margin:30px auto;
+  padding:20px;
+  width:90%;
+  max-width:600px;
+  border:2px solid #00ffff;
+  box-shadow:0 0 25px #00ffff;
 }
 
 button{
-background:#0ff;
-border:none;
-font-weight:bold;
+  padding:10px 25px;
+  background:#00ffff;
+  border:none;
+  font-weight:bold;
+  cursor:pointer;
+  margin:5px;
+  box-shadow:0 0 15px #00ffff;
+}
+
+input,textarea{
+  width:90%;
+  padding:10px;
+  margin:5px;
+}
+li{
+  margin:5px;
 }
 </style>
 </head>
@@ -35,94 +45,174 @@ font-weight:bold;
 <body>
 
 <!-- LOGIN -->
-<div id="loginBox" class="box">
+<div class="box" id="loginBox">
 <h2>🔐 ADMIN LOGIN</h2>
-<input type="password" id="pass" placeholder="Nhập mật khẩu">
+<input type="password" id="pass">
 <br>
-<button onclick="login()">ĐĂNG NHẬP</button>
-<p id="msg"></p>
+<button onclick="login()">Đăng nhập</button>
+<h3 id="msg"></h3>
 </div>
 
-<!-- DASHBOARD -->
-<div id="dashboard" class="box" style="display:none">
-<h2>⚡ ADMIN DASHBOARD</h2>
+<!-- PANEL -->
+<div id="panel" style="display:none">
 
-<p>📦 Import acc</p>
-<textarea id="importBox" placeholder="tk|mk"></textarea>
+<div class="box">
+<h2>📦 THÊM ACC</h2>
+
+<input id="accInput" placeholder="tk|mk">
 <br>
-<button onclick="importAcc()">IMPORT</button>
+<button onclick="addAcc()">➕ Thêm acc</button>
 
-<h3>📋 Danh sách acc</h3>
-<div id="list"></div>
-
+<textarea id="bulk" placeholder="Import nhiều acc mỗi dòng"></textarea>
 <br>
-<button onclick="logout()">ĐĂNG XUẤT</button>
+<button onclick="addFast()">⚡ Thêm nhanh</button>
+
+<input type="file" id="fileTxt">
+<br>
+<button onclick="importTxt()">📂 Import TXT</button>
+
+<button onclick="clearAll()">🧹 Xoá ALL</button>
+</div>
+
+<div class="box">
+<h2>📊 THỐNG KÊ</h2>
+<p>📦 Acc còn: <span id="totalAcc">0</span></p>
+<p>🎁 Đã phát: <span id="totalHistory">0</span></p>
+<p>👥 Online: <span id="online">0</span></p>
+</div>
+
+<div class="box">
+<h2>📋 DANH SÁCH ACC</h2>
+<ul id="list"></ul>
+</div>
+
+<div class="box">
+<h2>📜 LỊCH SỬ NHẬN ACC</h2>
+<div id="history"></div>
+</div>
+
 </div>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
+import {
+getDatabase, ref, push, onValue, remove, set
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-database.js";
 
-const firebaseConfig = {
-apiKey: "AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
-authDomain: "tangaccfreevip-2f58c.firebaseapp.com",
-databaseURL: "https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "tangaccfreevip-2f58c"
+const app = initializeApp({
+apiKey:"AIzaSyCNeMxQYCA3C58k1RtC4XyKayQnk-xYxkg",
+databaseURL:"https://tangaccfreevip-2f58c-default-rtdb.asia-southeast1.firebasedatabase.app"
+});
+
+const db = getDatabase(app);
+const accRef = ref(db,"accounts");
+
+/* LOGIN */
+let fail=0;
+
+window.login = ()=>{
+if(pass.value==="123456"){
+loginBox.style.display="none";
+panel.style.display="block";
+loadData();
+}else{
+fail++;
+msg.innerHTML="❌ Sai mật khẩu";
+if(fail>=5){
+msg.innerHTML="🔒 Khóa 5 phút";
+setTimeout(()=>fail=0,300000);
+}
+}
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+/* LOAD DATA */
+function loadData(){
 
-window.login = function(){
-const pass = document.getElementById("pass").value;
-
-if(pass==="123456"){
-document.getElementById("loginBox").style.display="none";
-document.getElementById("dashboard").style.display="block";
-loadAcc();
-}else{
-document.getElementById("msg").innerHTML="❌ Sai mật khẩu";
-}
-}
-
-window.logout = function(){
-location.reload();
-}
-
-function loadAcc(){
-const accRef = ref(db,"acc");
-
+// ACCOUNTS
 onValue(accRef,snap=>{
 let html="";
-snap.forEach(data=>{
+let total=0;
+
+snap.forEach(child=>{
+total++;
 html+=`
-<p>
-${data.val()}
-<button onclick="delAcc('${data.key}')">X</button>
-</p>
-`;
-})
-document.getElementById("list").innerHTML=html;
-})
+<li>
+${child.val()}
+<button onclick="delAcc('${child.key}')">🗑</button>
+</li>`;
+});
+
+list.innerHTML=html;
+totalAcc.innerHTML=total;
+});
+
+// ONLINE
+onValue(ref(db,"online"),snap=>{
+online.innerHTML = snap.exists()?Object.keys(snap.val()).length:0;
+});
+
+// HISTORY
+onValue(ref(db,"history"),snap=>{
+let count=0;
+let html="";
+
+snap.forEach(child=>{
+count++;
+const data = child.val();
+
+html+=`
+<div>
+🎁 ${data.acc}<br>
+📱 ${data.device}<br>
+⏰ ${new Date(data.time).toLocaleString()}
+<hr>
+</div>`;
+});
+
+totalHistory.innerHTML=count;
+history.innerHTML=html;
+});
+
 }
 
-window.importAcc = function(){
-const lines = document.getElementById("importBox").value.split("\n");
-
-lines.forEach(acc=>{
-if(acc.trim()!=""){
-push(ref(db,"acc"),acc.trim())
+/* ADD 1 ACC */
+window.addAcc = ()=>{
+if(accInput.value.trim()!=""){
+push(accRef,accInput.value);
+accInput.value="";
 }
-})
+};
 
-alert("✅ Đã import");
+/* ADD FAST */
+window.addFast = ()=>{
+bulk.value.split("\n").forEach(a=>{
+if(a.trim()!="") push(accRef,a);
+});
+bulk.value="";
+};
+
+/* IMPORT TXT */
+window.importTxt = async ()=>{
+const file = fileTxt.files[0];
+const text = await file.text();
+
+text.split("\n").forEach(a=>{
+if(a.trim()!="") push(accRef,a);
+});
+};
+
+/* DELETE 1 */
+window.delAcc = id=>{
+remove(ref(db,"accounts/"+id));
+};
+
+/* CLEAR ALL */
+window.clearAll = ()=>{
+if(confirm("Xoá toàn bộ acc?")){
+set(accRef,null);
 }
-
-window.delAcc = function(id){
-remove(ref(db,"acc/"+id))
-}
-
+};
 </script>
+
 </body>
 </html>
